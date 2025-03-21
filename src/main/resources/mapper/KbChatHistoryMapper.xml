@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbChatHistoryMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbChatHistory">
+        <id column="id" property="id" />
+        <result column="session_id" property="sessionId" />
+        <result column="kb_id" property="kbId" />
+        <result column="user_id" property="userId" />
+        <result column="question" property="question" />
+        <result column="answer" property="answer" />
+        <result column="tokens_used" property="tokensUsed" />
+        <result column="process_time" property="processTime" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, session_id, kb_id, user_id, question, answer, tokens_used,
+        process_time, create_time, update_time </sql>
+
+    <!-- 分页查询聊天历史列表 -->
+    <select id="selectChatHistoryList" resultType="com.dxdou.snowai.domain.vo.KbChatHistoryVO">
+        SELECT h.id, h.knowledge_base_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
+        user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
+        JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
+        u.id WHERE h.deleted = 0 <if test="knowledgeBaseId != null"> AND h.knowledge_base_id =
+        #{knowledgeBaseId} </if>
+        <if test="userId != null"> AND h.user_id = #{userId} </if> ORDER BY
+        h.create_time DESC </select>
+
+    <!-- 根据ID查询聊天历史信息 -->
+    <select id="selectChatHistoryById" resultType="com.dxdou.snowai.domain.vo.KbChatHistoryVO">
+        SELECT h.id, h.knowledge_base_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
+        user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
+        JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
+        u.id WHERE h.id = #{id} AND h.deleted = 0 </select>
+
+    <!-- 查询用户的聊天历史列表 -->
+    <select id="selectUserChatHistory" resultType="com.dxdou.snowai.domain.vo.KbChatHistoryVO">
+        SELECT h.id, h.knowledge_base_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
+        user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
+        JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
+        u.id WHERE h.user_id = #{userId} AND h.deleted = 0 ORDER BY h.create_time DESC </select>
+
+    <!-- 删除知识库的所有聊天历史 -->
+    <update id="deleteByKnowledgeBaseId"> UPDATE kb_chat_history SET deleted = 1 WHERE
+        knowledge_base_id = #{knowledgeBaseId} AND deleted = 0 </update>
+
+</mapper>

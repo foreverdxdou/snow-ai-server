@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbDocumentVersionMapper">
+
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbDocumentVersion">
+        <id column="id" property="id" />
+        <result column="document_id" property="documentId" />
+        <result column="version" property="version" />
+        <result column="title" property="title" />
+        <result column="content" property="content" />
+        <result column="file_url" property="fileUrl" />
+        <result column="creator_id" property="creatorId" />
+        <result column="create_time" property="createTime" />
+        <result column="deleted" property="deleted" />
+    </resultMap>
+
+    <resultMap id="VersionVOMap" type="com.dxdou.snowai.domain.vo.KbDocumentVersionVO">
+        <id column="id" property="id" />
+        <result column="document_id" property="documentId" />
+        <result column="version" property="version" />
+        <result column="title" property="title" />
+        <result column="content" property="content" />
+        <result column="file_url" property="fileUrl" />
+        <result column="creator_id" property="creatorId" />
+        <result column="creator_name" property="creatorName" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <sql id="Base_Column_List"> id, document_id, version, title, content, file_url, creator_id,
+        create_time, deleted </sql>
+
+    <select id="selectVersionHistory" resultMap="VersionVOMap"> SELECT v.id, v.document_id,
+        v.version, v.title, v.content, v.file_url, v.creator_id, u.nickname AS creator_name,
+        v.create_time FROM kb_document_version v LEFT JOIN sys_user u ON v.creator_id = u.id WHERE
+        v.document_id = #{documentId} AND v.deleted = 0 ORDER BY v.version DESC </select>
+
+    <select id="selectLatestVersion" resultMap="VersionVOMap"> SELECT v.id, v.document_id,
+        v.version, v.title, v.content, v.file_url, v.creator_id, u.nickname AS creator_name,
+        v.create_time FROM kb_document_version v LEFT JOIN sys_user u ON v.creator_id = u.id WHERE
+        v.document_id = #{documentId} AND v.deleted = 0 ORDER BY v.version DESC LIMIT 1 </select>
+
+</mapper>

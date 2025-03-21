@@ -1,0 +1,93 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: snow-ai-server
+
+  # 数据库配置
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://192.168.137.131:5432/snow_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: postgres
+    password: pgvector
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      # 连接池名称
+      pool-name: SnowAiHikariCP
+      # 最小空闲连接数
+      minimum-idle: 5
+      # 最大连接数
+      maximum-pool-size: 20
+      # 空闲连接超时时间
+      idle-timeout: 300000
+      # 连接超时时间
+      connection-timeout: 20000
+      # 连接测试查询
+      connection-test-query: SELECT 1
+      # 最大生命周期
+      max-lifetime: 1200000
+
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: abc!123
+      database: 0
+      timeout: 10s
+      lettuce:
+        pool:
+          min-idle: 0
+          max-idle: 8
+          max-active: 8
+          max-wait: -1ms
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    # 日志配置
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 驼峰命名转换
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      # 逻辑删除配置
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  # XML文件位置
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 实体类包路径
+  type-aliases-package: com.dxdou.snowai.domain.entity
+
+# MinIO配置
+minio:
+  endpoint: http://192.168.137.131:9000
+  access-key: admin
+  secret-key: admin123
+  bucket: snow-ai
+
+# Elasticsearch配置
+elasticsearch:
+  host: 192.168.137.131
+  port: 9200
+  username: elastic
+  password: elastic
+
+# JWT配置
+jwt:
+  secret: snow-ai-secret-key
+  expiration: 86400000 # 24小时
+  header: Authorization
+
+# Knife4j配置
+knife4j:
+  enable: true
+  setting:
+    language: zh-CN
+    enable-swagger-models: true
+    enable-document-manage: true
+    swagger-model-name: 实体类列表
+    enable-version: false
+    enable-reload-cache-parameter: false

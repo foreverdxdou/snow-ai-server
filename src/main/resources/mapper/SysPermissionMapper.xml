@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.SysPermissionMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.SysPermission">
+        <id column="id" property="id" />
+        <result column="parent_id" property="parentId" />
+        <result column="name" property="name" />
+        <result column="type" property="type" />
+        <result column="permission_code" property="permissionCode" />
+        <result column="path" property="path" />
+        <result column="component" property="component" />
+        <result column="icon" property="icon" />
+        <result column="sort" property="sort" />
+        <result column="status" property="status" />
+        <result column="deleted" property="deleted" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, parent_id, name, type, permission_code, path, component, icon,
+        sort, status, deleted, create_time, update_time </sql>
+
+    <!-- 查询权限树 -->
+    <select id="selectPermissionTree" resultType="com.dxdou.snowai.domain.vo.SysPermissionVO">
+        select p.id, p.parent_id, p.name, p.type, p.permission_code, p.path, p.component, p.icon,
+        p.sort, p.status, p.create_time, p.update_time, case when exists(select 1 from
+        sys_permission where parent_id = p.id and deleted = 0) then 1 else 0 end as has_children
+        from sys_permission p where p.deleted = 0 <if test="parentId != null"> and p.parent_id =
+        #{parentId} </if>
+        <if test="type != null"> and p.type = #{type} </if>
+        <if
+            test="status != null"> and p.status = #{status} </if> order by p.sort asc </select>
+
+    <!-- 根据用户ID查询权限列表 -->
+    <select id="selectUserPermissions" resultType="com.dxdou.snowai.domain.entity.SysPermission">
+        select distinct p.* from sys_permission p inner join sys_role_permission rp on p.id =
+        rp.permission_id inner join sys_user_role ur on rp.role_id = ur.role_id where ur.user_id =
+        #{userId} and p.deleted = 0 and rp.deleted = 0 and ur.deleted = 0 order by p.sort asc </select>
+
+    <!-- 根据角色ID列表查询权限列表 -->
+    <select id="selectPermissionsByRoleIds"
+        resultType="com.dxdou.snowai.domain.entity.SysPermission"> select distinct p.* from
+        sys_permission p inner join sys_role_permission rp on p.id = rp.permission_id where
+        rp.role_id in <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+        #{roleId} </foreach> and p.deleted = 0 and rp.deleted = 0 order by p.sort asc </select>
+
+</mapper>

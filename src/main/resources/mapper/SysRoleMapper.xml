@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.SysRoleMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.SysRole">
+        <id column="id" property="id" />
+        <result column="role_name" property="roleName" />
+        <result column="role_code" property="roleCode" />
+        <result column="description" property="description" />
+        <result column="deleted" property="deleted" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, role_name, role_code, description, deleted, create_time,
+        update_time </sql>
+
+    <!-- 查询角色列表（包含权限信息） -->
+    <select id="selectRoleList" resultType="com.dxdou.snowai.domain.vo.SysRoleVO"> select r.id,
+        r.role_name, r.role_code, r.description, r.create_time, r.update_time, group_concat(distinct
+        p.name) as permission_names, group_concat(distinct p.permission_code) as permission_codes
+        from sys_role r left join sys_role_permission rp on r.id = rp.role_id and rp.deleted = 0
+        left join sys_permission p on rp.permission_id = p.id and p.deleted = 0 where r.deleted = 0 <if
+            test="roleName != null and roleName != ''"> and r.role_name like concat('%',
+        #{roleName}, '%') </if>
+        <if test="roleCode != null and roleCode != ''"> and r.role_code like
+        concat('%', #{roleCode}, '%') </if> group by r.id </select>
+
+    <!-- 根据角色ID查询权限列表 -->
+    <select id="selectRolePermissions" resultType="com.dxdou.snowai.domain.entity.SysPermission">
+        select p.* from sys_permission p inner join sys_role_permission rp on p.id =
+        rp.permission_id where rp.role_id = #{roleId} and p.deleted = 0 and rp.deleted = 0 </select>
+
+    <!-- 根据用户ID查询角色列表 -->
+    <select id="selectRolesByUserId" resultMap="BaseResultMap"> SELECT r.* FROM sys_role r INNER
+        JOIN sys_user_role ur ON r.id = ur.role_id WHERE ur.user_id = #{userId} AND r.deleted = 0 </select>
+
+    <!-- 根据角色编码查询角色 -->
+    <select id="selectByRoleCode" resultMap="BaseResultMap"> SELECT * FROM sys_role WHERE role_code
+        = #{roleCode} AND deleted = 0 </select>
+</mapper>

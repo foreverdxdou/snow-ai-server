@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbDocumentVectorMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbDocumentVector">
+        <id column="id" property="id" />
+        <result column="document_id" property="documentId" />
+        <result column="content_vector" property="contentVector"
+            typeHandler="com.dxdou.snowai.handler.VectorTypeHandler" />
+        <result column="chunk_index" property="chunkIndex" />
+        <result column="chunk_content" property="chunkContent" />
+        <result column="similarity" property="similarity" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, document_id, content_vector, chunk_index, chunk_content,
+        similarity, create_time </sql>
+
+    <!-- 查找相似向量 -->
+    <select id="findSimilarVectors" resultMap="BaseResultMap"> SELECT dv.*, 1 - (dv.content_vector
+        &lt;=&gt; #{queryVector}::vector) as similarity FROM kb_document_vector dv JOIN kb_document
+        d ON dv.document_id = d.id WHERE d.kb_id = #{kbId} ORDER BY dv.content_vector &lt;=&gt;
+        #{queryVector}::vector LIMIT #{limit} </select>
+
+    <!-- 根据文档ID查询向量 -->
+    <select id="selectByDocumentId" resultMap="BaseResultMap"> SELECT <include
+            refid="Base_Column_List" /> FROM kb_document_vector WHERE document_id = #{documentId}
+        ORDER BY chunk_index ASC LIMIT 1 </select>
+
+    <!-- 插入或更新向量 -->
+    <insert id="insertOrUpdate"> INSERT INTO kb_document_vector (id, document_id, content_vector,
+        chunk_index, chunk_content, create_time) VALUES (#{id}, #{documentId},
+        #{contentVector}::vector, #{chunkIndex}, #{chunkContent}, CURRENT_TIMESTAMP) ON CONFLICT
+        (document_id, chunk_index) DO UPDATE SET content_vector = EXCLUDED.content_vector,
+        chunk_content = EXCLUDED.chunk_content </insert>
+
+</mapper>

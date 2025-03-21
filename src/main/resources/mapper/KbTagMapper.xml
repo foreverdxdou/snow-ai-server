@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbTagMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbTag">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="kb_id" property="kbId" />
+        <result column="creator_id" property="creatorId" />
+        <result column="status" property="status" />
+        <result column="deleted" property="deleted" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, name, description, kb_id, creator_id, status, deleted,
+        create_time, update_time </sql>
+
+    <!-- 分页查询标签列表 -->
+    <select id="selectTagList" resultType="com.dxdou.snowai.domain.vo.KbTagVO"> SELECT t.id, t.name,
+        t.description, t.kb_id, t.creator_id, u.nickname as creator_name, t.status, t.create_time,
+        t.update_time, kb.name as kb_name FROM kb_tag t LEFT JOIN sys_user u ON t.creator_id = u.id
+        LEFT JOIN kb_knowledge_base kb ON t.kb_id = kb.id WHERE t.deleted = 0 <if
+            test="name != null and name != ''"> AND t.name LIKE CONCAT('%', #{name}, '%') </if>
+        <if
+            test="kbId != null"> AND t.kb_id = #{kbId} </if>
+        <if test="creatorId != null"> AND
+        t.creator_id = #{creatorId} </if>
+        <if test="status != null"> AND t.status = #{status} </if>
+        ORDER BY t.create_time DESC </select>
+
+    <!-- 根据ID查询标签 -->
+    <select id="selectTagById" resultType="com.dxdou.snowai.domain.vo.KbTagVO"> SELECT t.id, t.name,
+        t.description, t.kb_id, t.creator_id, u.nickname as creator_name, t.status, t.create_time,
+        t.update_time, kb.name as kb_name FROM kb_tag t LEFT JOIN sys_user u ON t.creator_id = u.id
+        LEFT JOIN kb_knowledge_base kb ON t.kb_id = kb.id WHERE t.id = #{id} AND t.deleted = 0 </select>
+
+    <!-- 根据知识库ID查询标签列表 -->
+    <select id="selectByKbId" resultType="com.dxdou.snowai.domain.vo.KbTagVO"> SELECT t.id, t.name,
+        t.description, t.kb_id, t.creator_id, u.nickname as creator_name, t.status, t.create_time,
+        t.update_time, kb.name as kb_name FROM kb_tag t LEFT JOIN sys_user u ON t.creator_id = u.id
+        LEFT JOIN kb_knowledge_base kb ON t.kb_id = kb.id WHERE t.kb_id = #{kbId} AND t.deleted = 0
+        AND t.status = 1 ORDER BY t.create_time DESC </select>
+
+    <!-- 查询文档的标签列表 -->
+    <select id="selectByDocumentId" resultType="com.dxdou.snowai.domain.vo.KbTagVO"> SELECT t.id,
+        t.name, t.description, t.kb_id, t.creator_id, u.nickname as creator_name, t.status,
+        t.create_time, t.update_time, kb.name as kb_name FROM kb_tag t LEFT JOIN sys_user u ON
+        t.creator_id = u.id LEFT JOIN kb_knowledge_base kb ON t.kb_id = kb.id INNER JOIN
+        kb_document_tag dt ON t.id = dt.tag_id WHERE dt.document_id = #{documentId} AND t.deleted =
+        0 AND t.status = 1 ORDER BY t.create_time DESC </select>
+
+</mapper>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbKnowledgeBaseMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbKnowledgeBase">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="creator_id" property="creatorId" />
+        <result column="status" property="status" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="deleted" property="deleted" />
+    </resultMap>
+
+    <!-- 知识库VO结果映射 -->
+    <resultMap id="KnowledgeBaseVOMap" type="com.dxdou.snowai.domain.vo.KbKnowledgeBaseVO">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="creator_id" property="creatorId" />
+        <result column="creator_name" property="creatorName" />
+        <result column="status" property="status" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="document_count" property="documentCount" />
+        <result column="category_count" property="categoryCount" />
+        <result column="tag_count" property="tagCount" />
+    </resultMap>
+
+    <!-- 分页查询知识库列表 -->
+    <select id="selectKnowledgeBaseList" resultMap="KnowledgeBaseVOMap"> SELECT kb.id, kb.name,
+        kb.description, kb.creator_id, u.nickname as creator_name, kb.status, kb.create_time,
+        kb.update_time, (SELECT COUNT(*) FROM kb_document WHERE kb_id = kb.id AND deleted = 0) as
+        document_count, (SELECT COUNT(*) FROM kb_category WHERE kb_id = kb.id AND deleted = 0) as
+        category_count, (SELECT COUNT(*) FROM kb_tag WHERE kb_id = kb.id AND deleted = 0) as
+        tag_count FROM kb_knowledge_base kb LEFT JOIN sys_user u ON kb.creator_id = u.id <where>
+        kb.deleted = 0 <if test="name != null and name != ''"> AND kb.name LIKE CONCAT('%', #{name},
+        '%') </if>
+            <if test="creatorId != null"> AND kb.creator_id = #{creatorId} </if>
+            <if
+                test="status != null"> AND kb.status = #{status} </if>
+        </where> ORDER BY
+        kb.create_time DESC </select>
+
+    <!-- 根据ID查询知识库信息 -->
+    <select id="selectKnowledgeBaseById" resultMap="KnowledgeBaseVOMap"> SELECT kb.id, kb.name,
+        kb.description, kb.creator_id, u.nickname as creator_name, kb.status, kb.create_time,
+        kb.update_time, (SELECT COUNT(*) FROM kb_document WHERE kb_id = kb.id AND deleted = 0) as
+        document_count, (SELECT COUNT(*) FROM kb_category WHERE kb_id = kb.id AND deleted = 0) as
+        category_count, (SELECT COUNT(*) FROM kb_tag WHERE kb_id = kb.id AND deleted = 0) as
+        tag_count FROM kb_knowledge_base kb LEFT JOIN sys_user u ON kb.creator_id = u.id WHERE kb.id
+        = #{id} AND kb.deleted = 0 </select>
+
+    <!-- 查询用户可访问的知识库列表 -->
+    <select id="selectUserKnowledgeBases" resultMap="KnowledgeBaseVOMap"> SELECT DISTINCT kb.id,
+        kb.name, kb.description, kb.creator_id, u.nickname as creator_name, kb.status,
+        kb.create_time, kb.update_time, (SELECT COUNT(*) FROM kb_document WHERE kb_id = kb.id AND
+        deleted = 0) as document_count, (SELECT COUNT(*) FROM kb_category WHERE kb_id = kb.id AND
+        deleted = 0) as category_count, (SELECT COUNT(*) FROM kb_tag WHERE kb_id = kb.id AND deleted
+        = 0) as tag_count FROM kb_knowledge_base kb LEFT JOIN sys_user u ON kb.creator_id = u.id
+        LEFT JOIN kb_knowledge_base_permission kbp ON kb.id = kbp.kb_id WHERE kb.deleted = 0 AND (
+        kb.creator_id = #{userId} OR kbp.user_id = #{userId} OR kbp.role_id IN ( SELECT role_id FROM
+        sys_user_role WHERE user_id = #{userId} ) ) ORDER BY kb.create_time DESC </select>
+
+    <!-- 查询知识库的文档数量 -->
+    <select id="selectDocumentCount" resultType="java.lang.Integer"> SELECT COUNT(*) FROM
+        kb_document WHERE kb_id = #{kbId} AND deleted = 0 </select>
+
+</mapper>

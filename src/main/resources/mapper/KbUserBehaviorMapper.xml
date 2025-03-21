@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbUserBehaviorMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbUserBehavior">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="document_id" property="documentId" />
+        <result column="behavior_type" property="behaviorType" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, user_id, document_id, behavior_type, create_time </sql>
+
+    <!-- 获取用户最近的行为记录 -->
+    <select id="selectRecentBehaviors" resultMap="BaseResultMap"> SELECT <include
+            refid="Base_Column_List" /> FROM kb_user_behavior WHERE user_id = #{userId} AND
+        document_id IN ( SELECT id FROM kb_document WHERE kb_id = #{kbId} ) ORDER BY create_time
+        DESC LIMIT #{limit} </select>
+
+    <!-- 获取用户行为统计 -->
+    <select id="selectBehaviorStats" resultType="java.util.Map"> SELECT COUNT(DISTINCT document_id)
+        as unique_doc_count, COUNT(*) as total_behavior_count, MAX(create_time) as last_active_time,
+        COUNT(CASE WHEN behavior_type = 1 THEN 1 END) as view_count, COUNT(CASE WHEN behavior_type =
+        2 THEN 1 END) as search_count, COUNT(CASE WHEN behavior_type = 3 THEN 1 END) as
+        download_count FROM kb_user_behavior WHERE user_id = #{userId} AND document_id IN ( SELECT
+        id FROM kb_document WHERE kb_id = #{kbId} ) </select>
+
+</mapper> 

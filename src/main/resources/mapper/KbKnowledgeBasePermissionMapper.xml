@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbKnowledgeBasePermissionMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbKnowledgeBasePermission">
+        <id column="id" property="id" />
+        <result column="kb_id" property="kbId" />
+        <result column="user_id" property="userId" />
+        <result column="role_id" property="roleId" />
+        <result column="permission_type" property="permissionType" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, kb_id, user_id, role_id, permission_type, create_time,
+        update_time </sql>
+
+    <!-- 批量插入知识库权限 -->
+    <insert id="insertBatch"> INSERT INTO kb_knowledge_base_permission (kb_id, user_id, role_id,
+        permission_type, create_time, update_time) VALUES <foreach collection="permissions"
+            item="permission"
+            separator=","> (#{permission.kbId}, #{permission.userId}, #{permission.roleId},
+        #{permission.permissionType}, NOW(), NOW()) </foreach>
+    </insert>
+
+    <!-- 删除知识库的所有权限 -->
+    <delete id="deleteByKbId"> DELETE FROM kb_knowledge_base_permission WHERE kb_id = #{kbId} </delete>
+
+    <!-- 查询知识库的权限列表 -->
+    <select id="selectByKbId" resultMap="BaseResultMap"> SELECT <include refid="Base_Column_List" />
+        FROM kb_knowledge_base_permission WHERE kb_id = #{kbId} ORDER BY create_time DESC </select>
+
+    <!-- 查询用户对知识库的权限 -->
+    <select id="selectUserPermission" resultType="java.lang.Integer"> SELECT MAX(permission_type)
+        FROM kb_knowledge_base_permission WHERE kb_id = #{kbId} AND ( user_id = #{userId} OR role_id
+        IN (SELECT role_id FROM sys_user_role WHERE user_id = #{userId}) ) </select>
+
+</mapper> 

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.KbDocumentMapper">
+
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbDocument">
+        <id column="id" property="id" />
+        <result column="title" property="title" />
+        <result column="content" property="content" />
+        <result column="file_type" property="fileType" />
+        <result column="file_size" property="fileSize" />
+        <result column="file_url" property="fileUrl" />
+        <result column="category_id" property="categoryId" />
+        <result column="kb_id" property="kbId" />
+        <result column="version" property="version" />
+        <result column="status" property="status" />
+        <result column="creator_id" property="creatorId" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="deleted" property="deleted" />
+    </resultMap>
+
+    <resultMap id="DocumentVOMap" type="com.dxdou.snowai.domain.vo.KbDocumentVO">
+        <id column="id" property="id" />
+        <result column="title" property="title" />
+        <result column="content" property="content" />
+        <result column="file_type" property="fileType" />
+        <result column="file_size" property="fileSize" />
+        <result column="file_url" property="fileUrl" />
+        <result column="category_id" property="categoryId" />
+        <result column="category_name" property="categoryName" />
+        <result column="kb_id" property="kbId" />
+        <result column="kb_name" property="kbName" />
+        <result column="version" property="version" />
+        <result column="status" property="status" />
+        <result column="creator_id" property="creatorId" />
+        <result column="creator_name" property="creatorName" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <sql id="Base_Column_List"> id, title, content, file_type, file_size, file_url, category_id,
+        kb_id, version, status, creator_id, create_time, update_time, deleted </sql>
+
+    <select id="selectDocumentList" resultMap="DocumentVOMap"> SELECT d.id, d.title, d.content,
+        d.file_type, d.file_size, d.file_url, d.category_id, c.name AS category_name, d.kb_id,
+        k.name AS kb_name, d.version, d.status, d.creator_id, u.nickname AS creator_name,
+        d.create_time, d.update_time FROM kb_document d LEFT JOIN kb_category c ON d.category_id =
+        c.id LEFT JOIN kb_knowledge_base k ON d.kb_id = k.id LEFT JOIN sys_user u ON d.creator_id =
+        u.id WHERE d.deleted = 0 <if test="title != null and title != ''"> AND d.title LIKE
+        CONCAT('%', #{title}, '%') </if>
+            <if test="kbId != null"> AND d.kb_id = #{kbId} </if>
+            <if
+            test="categoryId != null"> AND d.category_id = #{categoryId} </if>
+            <if
+            test="creatorId != null"> AND d.creator_id = #{creatorId} </if>
+            <if test="status != null">
+        AND d.status = #{status} </if> ORDER BY d.create_time DESC </select>
+
+    <select id="selectDocumentById" resultMap="DocumentVOMap"> SELECT d.id, d.title, d.content,
+        d.file_type, d.file_size, d.file_url, d.category_id, c.name AS category_name, d.kb_id,
+        k.name AS kb_name, d.version, d.status, d.creator_id, u.nickname AS creator_name,
+        d.create_time, d.update_time FROM kb_document d LEFT JOIN kb_category c ON d.category_id =
+        c.id LEFT JOIN kb_knowledge_base k ON d.kb_id = k.id LEFT JOIN sys_user u ON d.creator_id =
+        u.id WHERE d.id = #{id} AND d.deleted = 0 </select>
+
+    <select id="selectDocumentTags" resultType="com.dxdou.snowai.domain.vo.KbTagVO"> SELECT t.id,
+        t.name, t.description, t.kb_id, k.name AS kb_name, t.creator_id, u.nickname AS creator_name,
+        t.status, t.create_time, t.update_time FROM kb_tag t LEFT JOIN kb_document_tag dt ON t.id =
+        dt.tag_id LEFT JOIN kb_knowledge_base k ON t.kb_id = k.id LEFT JOIN sys_user u ON
+        t.creator_id = u.id WHERE dt.document_id = #{documentId} AND t.deleted = 0 AND dt.deleted =
+        0 ORDER BY t.create_time DESC </select>
+
+    <select id="selectDocumentTagIds" resultType="java.lang.Long"> SELECT tag_id FROM
+        kb_document_tag WHERE document_id = #{documentId} </select>
+
+    <insert id="insertDocumentTags"> INSERT INTO kb_document_tag (document_id, tag_id, creator_id,
+        create_time) VALUES <foreach collection="tagIds" item="tagId" separator=","> (#{documentId},
+        #{tagId}, #{creatorId}, NOW()) </foreach>
+    </insert>
+
+    <delete id="deleteDocumentTags"> DELETE FROM kb_document_tag WHERE document_id = #{documentId} </delete>
+
+    <update id="updateDocumentVersion"> UPDATE kb_document SET version = #{version} WHERE id = #{id} </update>
+
+</mapper>

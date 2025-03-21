@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.SysAiModelMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.SysAiModel">
+        <id column="id" property="id" />
+        <result column="model_name" property="modelName" />
+        <result column="model_type" property="modelType" />
+        <result column="api_url" property="apiUrl" />
+        <result column="api_key" property="apiKey" />
+        <result column="status" property="status" />
+        <result column="deleted" property="deleted" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, model_name, model_type, api_url, api_key, status, deleted,
+        create_time, update_time </sql>
+
+    <!-- 查询模型列表 -->
+    <select id="selectModelList" resultMap="BaseResultMap"> select <include refid="Base_Column_List" />
+        from sys_ai_model where deleted = 0 <if test="modelName != null and modelName != ''"> and
+        model_name like concat('%', #{modelName}, '%') </if>
+        <if test="modelType != null"> and
+        model_type = #{modelType} </if>
+        <if test="status != null"> and status = #{status} </if> order
+        by create_time desc </select>
+
+    <!-- 根据模型名称查询模型 -->
+    <select id="selectByModelName" resultMap="BaseResultMap"> select <include
+            refid="Base_Column_List" /> from sys_ai_model where model_name = #{modelName} and
+        deleted = 0 </select>
+
+    <!-- 查询可用的模型列表 -->
+    <select id="selectAvailableModels" resultMap="BaseResultMap"> select <include
+            refid="Base_Column_List" /> from sys_ai_model where deleted = 0 and status = 1 order by
+        create_time desc </select>
+
+    <!-- 根据模型类型查询模型列表 -->
+    <select id="selectByModelType" resultMap="BaseResultMap"> SELECT * FROM sys_ai_model WHERE
+        model_type = #{modelType} AND deleted = 0 ORDER BY create_time DESC </select>
+</mapper>

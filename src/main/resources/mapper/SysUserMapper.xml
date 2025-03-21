@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dxdou.snowai.mapper.SysUserMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.SysUser">
+        <id column="id" property="id" />
+        <result column="username" property="username" />
+        <result column="password" property="password" />
+        <result column="nickname" property="nickname" />
+        <result column="email" property="email" />
+        <result column="avatar" property="avatar" />
+        <result column="dept_id" property="deptId" />
+        <result column="status" property="status" />
+        <result column="deleted" property="deleted" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List"> id, username, password, nickname, email, avatar, dept_id, status,
+        deleted, create_time, update_time </sql>
+
+    <!-- 根据用户名查询用户信息 -->
+    <select id="selectByUsername" resultMap="BaseResultMap"> select <include
+            refid="Base_Column_List" /> from sys_user where username = #{username} and deleted = 0 </select>
+
+    <!-- 查询用户列表（包含角色信息） -->
+    <select id="selectUserList" resultType="com.dxdou.snowai.domain.vo.SysUserVO"> select u.id,
+        u.username, u.nickname, u.email, u.avatar, u.dept_id, u.status, u.create_time,
+        u.update_time, group_concat(distinct r.role_name) as role_names, group_concat(distinct
+        r.role_code) as role_codes from sys_user u left join sys_user_role ur on u.id = ur.user_id
+        and ur.deleted = 0 left join sys_role r on ur.role_id = r.id and r.deleted = 0 where
+        u.deleted = 0 <if test="username != null and username != ''"> and u.username like
+        concat('%', #{username}, '%') </if>
+        <if test="status != null"> and u.status = #{status} </if>
+        <if
+            test="deptId != null"> and u.dept_id = #{deptId} </if> group by u.id </select>
+
+    <!-- 根据用户ID查询用户角色列表 -->
+    <select id="selectUserRoles" resultType="com.dxdou.snowai.domain.entity.SysRole"> SELECT r.*
+        FROM sys_role r INNER JOIN sys_user_role ur ON r.id = ur.role_id WHERE ur.user_id =
+        #{userId} AND r.deleted = 0 </select>
+</mapper>
