@@ -31,7 +31,7 @@ SELECT 2, id FROM sys_permission WHERE permission_code LIKE 'kb:%';
 
 -- 初始化管理员用户（密码：123456）
 INSERT INTO sys_user (id, username, password, nickname, email, dept_id, status)
-VALUES (1, 'admin', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '管理员', 'admin@example.com', 1, 1);
+VALUES (1, 'admin', '$2a$10$LONs5hYyrFnAvCqRkHUfkOReaXZorpi3T8K7OoIIs1NGMdoPGw5cW', '管理员', 'admin@example.com', 1, 1);
 
 -- 初始化用户角色关联
 INSERT INTO sys_user_role (user_id, role_id)

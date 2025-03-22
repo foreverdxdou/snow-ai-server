@@ -118,3 +118,4 @@ fabric.properties
 # Built Visual Studio Code Extensions
 *.vsix
 
+src/main/resources/edu
