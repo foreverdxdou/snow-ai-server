@@ -3,6 +3,7 @@ package com.dxdou.snowai.security;
 import com.dxdou.snowai.domain.entity.SysUser;
 import com.dxdou.snowai.service.SysUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final SysUserService userService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -51,8 +53,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         authorities.addAll(permissions.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList()));
-
-        // 创建UserDetails对象
+        
         return new User(user.getUsername(), user.getPassword(), authorities);
     }
 }
