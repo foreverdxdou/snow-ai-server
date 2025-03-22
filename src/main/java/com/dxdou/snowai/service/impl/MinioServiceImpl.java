@@ -32,12 +32,12 @@ public class MinioServiceImpl implements MinioService {
         try {
             // 检查存储桶是否存在
             boolean found = minioClient.bucketExists(BucketExistsArgs.builder()
-                    .bucket(minioConfig.getBucketName())
+                    .bucket(minioConfig.getBucket())
                     .build());
             if (!found) {
                 // 创建存储桶
                 minioClient.makeBucket(MakeBucketArgs.builder()
-                        .bucket(minioConfig.getBucketName())
+                        .bucket(minioConfig.getBucket())
                         .build());
             }
 
@@ -48,7 +48,7 @@ public class MinioServiceImpl implements MinioService {
 
             // 上传文件
             minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(minioConfig.getBucketName())
+                    .bucket(minioConfig.getBucket())
                     .object(uniqueFileName)
                     .stream(file.getInputStream(), file.getSize(), -1)
                     .contentType(file.getContentType())
@@ -70,7 +70,7 @@ public class MinioServiceImpl implements MinioService {
 
             // 删除文件
             minioClient.removeObject(RemoveObjectArgs.builder()
-                    .bucket(minioConfig.getBucketName())
+                    .bucket(minioConfig.getBucket())
                     .object(fileName)
                     .build());
         } catch (Exception e) {
@@ -84,7 +84,7 @@ public class MinioServiceImpl implements MinioService {
         try {
             // 生成预签名URL，有效期7天
             return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
-                    .bucket(minioConfig.getBucketName())
+                    .bucket(minioConfig.getBucket())
                     .object(fileName)
                     .method(Method.GET)
                     .expiry(7, TimeUnit.DAYS)

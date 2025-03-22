@@ -77,10 +77,21 @@ elasticsearch:
 
 # JWT配置
 jwt:
-  secret: snow-ai-secret-key
+  secret: 123324y3jksadbkasdadasnow-ai-secret-key
   expiration: 86400000 # 24小时
-  header: Authorization
 
+# springdoc-openapi项目配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.dxdou.snowai.controller
 # Knife4j配置
 knife4j:
   enable: true

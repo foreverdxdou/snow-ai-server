@@ -20,7 +20,7 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <mybatis-plus.version>3.5.4.1</mybatis-plus.version>
+        <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <postgresql.version>42.7.1</postgresql.version>
         <jjwt.version>0.12.3</jjwt.version>
         <hutool.version>5.8.24</hutool.version>
@@ -60,11 +60,13 @@
             <artifactId>pgvector</artifactId>
             <version>${pgvector.version}</version>
         </dependency>
+
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>${mybatis-plus.version}</version>
         </dependency>
+
 
         <!-- JWT -->
         <dependency>
@@ -129,7 +131,7 @@
         <dependency>
             <groupId>edu.stanford.nlp</groupId>
             <artifactId>stanford-corenlp</artifactId>
-            <version>4.5.5</version>
+            <version>4.5.8</version>
         </dependency>
         <!-- 文本相似度计算 -->
         <dependency>

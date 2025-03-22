@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -28,7 +29,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtConfig jwtConfig;
     private final UserDetailsService userDetailsService;
-    private final SysUserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -48,5 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new BCryptPasswordEncoder().encode("123456"));
     }
 }

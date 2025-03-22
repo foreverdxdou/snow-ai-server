@@ -34,7 +34,7 @@ public class MinioConfig {
     /**
      * 存储桶名称
      */
-    private String bucketName;
+    private String bucket;
 
     /**
      * 配置MinIO客户端
