@@ -3,6 +3,7 @@ package com.dxdou.snowai.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dxdou.snowai.common.Result;
 import com.dxdou.snowai.domain.entity.KbKnowledgeBase;
+import com.dxdou.snowai.domain.dto.KnowledgeBaseDTO;
 import com.dxdou.snowai.domain.vo.KbKnowledgeBaseVO;
 import com.dxdou.snowai.service.AuthService;
 import com.dxdou.snowai.service.KbKnowledgeBaseService;
@@ -64,26 +65,22 @@ public class KbKnowledgeBaseController {
     /**
      * 创建知识库
      *
-     * @param name        知识库名称
-     * @param description 知识库描述
+     * @param dto 知识库信息
      * @return 知识库信息
      */
     @Operation(summary = "创建知识库")
     @PostMapping
     @PreAuthorize("hasAuthority('kb:add')")
-    public Result<KbKnowledgeBaseVO> create(
-            @Parameter(description = "知识库名称") @RequestParam String name,
-            @Parameter(description = "知识库描述") @RequestParam(required = false) String description) {
+    public Result<KbKnowledgeBaseVO> create(@RequestBody KnowledgeBaseDTO dto) {
         Long creatorId = authService.getCurrentUser().getId();
-        return Result.success(knowledgeBaseService.createKnowledgeBase(name, description, creatorId));
+        return Result.success(knowledgeBaseService.createKnowledgeBase(dto.getName(), dto.getDescription(), creatorId));
     }
 
     /**
      * 更新知识库
      *
-     * @param id          知识库ID
-     * @param name        知识库名称
-     * @param description 知识库描述
+     * @param id  知识库ID
+     * @param dto 知识库信息
      * @return 知识库信息
      */
     @Operation(summary = "更新知识库")
@@ -91,9 +88,8 @@ public class KbKnowledgeBaseController {
     @PreAuthorize("hasAuthority('kb:edit')")
     public Result<KbKnowledgeBaseVO> update(
             @Parameter(description = "知识库ID") @PathVariable Long id,
-            @Parameter(description = "知识库名称") @RequestParam String name,
-            @Parameter(description = "知识库描述") @RequestParam(required = false) String description) {
-        return Result.success(knowledgeBaseService.updateKnowledgeBase(id, name, description));
+            @RequestBody KnowledgeBaseDTO dto) {
+        return Result.success(knowledgeBaseService.updateKnowledgeBase(id, dto.getName(), dto.getDescription()));
     }
 
     /**
