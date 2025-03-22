@@ -1,0 +1,28 @@
+spring:
+  # 数据库配置
+  datasource:
+    url: jdbc:postgresql://192.168.10.113:10036/snow_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: postgres
+    password: pgvector
+
+  # Redis配置
+  data:
+    redis:
+      host: 192.168.10.113
+      port: 6379
+      password: 123456
+
+
+# MinIO配置
+minio:
+  endpoint: http://192.168.10.113:10034
+  access-key: admin
+  secret-key: admin123
+  bucket: snow-ai
+
+# Elasticsearch配置
+elasticsearch:
+  host: 192.168.10.113
+  port: 10037
+  username: elastic
+  password: elastic

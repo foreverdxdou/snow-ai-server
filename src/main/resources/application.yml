@@ -8,7 +8,7 @@ spring:
   # 数据库配置
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://192.168.137.131:5432/snow_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:postgresql://192.168.196.239:10036/snow_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: postgres
     password: pgvector
     type: com.zaxxer.hikari.HikariDataSource
@@ -31,9 +31,9 @@ spring:
   # Redis配置
   data:
     redis:
-      host: localhost
+      host: 192.168.196.239
       port: 6379
-      password: abc!123
+      password: 123456
       database: 0
       timeout: 10s
       lettuce:
@@ -42,6 +42,8 @@ spring:
           max-idle: 8
           max-active: 8
           max-wait: -1ms
+  profiles:
+    active: local
 
 # MyBatis-Plus配置
 mybatis-plus:
@@ -63,15 +65,15 @@ mybatis-plus:
 
 # MinIO配置
 minio:
-  endpoint: http://192.168.137.131:9000
+  endpoint: http://192.168.196.239:10034
   access-key: admin
   secret-key: admin123
   bucket: snow-ai
 
 # Elasticsearch配置
 elasticsearch:
-  host: 192.168.137.131
-  port: 9200
+  host: 192.168.196.239
+  port: 10037
   username: elastic
   password: elastic
 
