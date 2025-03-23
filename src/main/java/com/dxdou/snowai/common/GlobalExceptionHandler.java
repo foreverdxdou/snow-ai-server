@@ -37,44 +37,44 @@ public class GlobalExceptionHandler {
      * 处理参数校验异常
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<Void> handleValidException(MethodArgumentNotValidException e) {
+    public R<Void> handleValidException(MethodArgumentNotValidException e) {
         List<String> errors = e.getBindingResult().getFieldErrors()
                 .stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.toList());
         log.error("参数校验异常：{}", errors);
-        return Result.error(errors.get(0));
+        return R.error(errors.get(0));
     }
 
     /**
      * 处理参数绑定异常
      */
     @ExceptionHandler(BindException.class)
-    public Result<Void> handleBindException(BindException e) {
+    public R<Void> handleBindException(BindException e) {
         List<String> errors = e.getBindingResult().getFieldErrors()
                 .stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.toList());
         log.error("参数绑定异常：{}", errors);
-        return Result.error(errors.get(0));
+        return R.error(errors.get(0));
     }
 
     /**
      * 处理认证异常
      */
     @ExceptionHandler(BadCredentialsException.class)
-    public Result<Void> handleAuthenticationException(BadCredentialsException e) {
+    public R<Void> handleAuthenticationException(BadCredentialsException e) {
         log.error("认证异常：{}", e.getMessage());
-        return Result.error(401, "用户名或密码错误");
+        return R.error(401, "用户名或密码错误");
     }
 
     /**
      * 处理权限异常
      */
     @ExceptionHandler(AccessDeniedException.class)
-    public Result<Void> handleAccessDeniedException(AccessDeniedException e) {
+    public R<Void> handleAccessDeniedException(AccessDeniedException e) {
         log.error("权限异常：{}", e.getMessage());
-        return Result.error(403, "无访问权限");
+        return R.error(403, "无访问权限");
     }
 
     /**
