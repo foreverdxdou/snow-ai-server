@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 文档实体
@@ -88,4 +89,9 @@ public class KbDocument {
      */
     @TableLogic
     private Integer deleted;
+
+    /**
+     * 标签ID列表
+     */
+    private List<Long> tagIds;
 }

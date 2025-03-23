@@ -24,7 +24,7 @@ import java.util.List;
  */
 @Tag(name = "文档管理")
 @RestController
-@RequestMapping("/kb/document")
+@RequestMapping("/api/v1/kb/document")
 @RequiredArgsConstructor
 public class KbDocumentController {
 
@@ -65,11 +65,8 @@ public class KbDocumentController {
     @PutMapping("/{id}")
     public R<KbDocumentVO> update(
             @Parameter(description = "文档ID") @PathVariable Long id,
-            @Parameter(description = "标题") @RequestParam String title,
-            @Parameter(description = "内容") @RequestParam String content,
-            @Parameter(description = "分类ID") @RequestParam(required = false) Long categoryId,
-            @Parameter(description = "标签ID列表") @RequestParam(required = false) List<Long> tagIds) {
-        return R.ok(documentService.updateDocument(id, title, content, categoryId, tagIds));
+            @RequestBody KbDocument document) {
+        return R.ok(documentService.updateDocument(id, document.getTitle(), document.getContent(), document.getCategoryId(), document.getTagIds()));
     }
 
     @Operation(summary = "删除文档")

@@ -1,5 +1,6 @@
 package com.dxdou.snowai.controller;
 
+import com.dxdou.snowai.common.R;
 import com.dxdou.snowai.domain.entity.LlmConfig;
 import com.dxdou.snowai.service.LlmConfigService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,31 +26,31 @@ public class LlmConfigController {
 
     @Operation(summary = "获取所有大模型配置")
     @GetMapping("/list")
-    public List<LlmConfig> list() {
-        return llmConfigService.list();
+    public R<List<LlmConfig>> list() {
+        return R.ok(llmConfigService.list());
     }
 
     @Operation(summary = "获取指定大模型配置")
     @GetMapping("/{id}")
-    public LlmConfig getById(@Parameter(description = "配置ID") @PathVariable Long id) {
-        return llmConfigService.getById(id);
+    public R<LlmConfig> getById(@Parameter(description = "配置ID") @PathVariable Long id) {
+        return R.ok(llmConfigService.getById(id));
     }
 
     @Operation(summary = "新增大模型配置")
     @PostMapping
-    public boolean save(@RequestBody LlmConfig config) {
-        return llmConfigService.save(config);
+    public R<Boolean> save(@RequestBody LlmConfig config) {
+        return R.ok(llmConfigService.save(config));
     }
 
     @Operation(summary = "更新大模型配置")
     @PutMapping
-    public boolean update(@RequestBody LlmConfig config) {
-        return llmConfigService.updateById(config);
+    public R<Boolean> update(@RequestBody LlmConfig config) {
+        return R.ok(llmConfigService.updateById(config));
     }
 
     @Operation(summary = "删除大模型配置")
     @DeleteMapping("/{id}")
-    public boolean delete(@Parameter(description = "配置ID") @PathVariable Long id) {
-        return llmConfigService.removeById(id);
+    public R<Boolean> delete(@Parameter(description = "配置ID") @PathVariable Long id) {
+        return R.ok(llmConfigService.removeById(id));
     }
 }

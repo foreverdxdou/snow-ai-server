@@ -1,7 +1,8 @@
 package com.dxdou.snowai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.dxdou.snowai.common.Result;
+import com.dxdou.snowai.common.R;
+import com.dxdou.snowai.domain.dto.KnowledgeBaseAssignDTO;
 import com.dxdou.snowai.domain.entity.KbKnowledgeBase;
 import com.dxdou.snowai.domain.dto.KnowledgeBaseDTO;
 import com.dxdou.snowai.domain.vo.KbKnowledgeBaseVO;
@@ -23,7 +24,7 @@ import java.util.List;
  */
 @Tag(name = "知识库管理", description = "知识库相关接口")
 @RestController
-@RequestMapping("/api/kb")
+@RequestMapping("/api/v1/kb")
 @RequiredArgsConstructor
 public class KbKnowledgeBaseController {
 
@@ -41,12 +42,12 @@ public class KbKnowledgeBaseController {
     @Operation(summary = "分页查询知识库列表")
     @GetMapping("/list")
     @PreAuthorize("hasAuthority('kb:list')")
-    public Result<Page<KbKnowledgeBaseVO>> list(
+    public R<Page<KbKnowledgeBaseVO>> list(
             @Parameter(description = "分页参数") Page<KbKnowledgeBase> page,
             @Parameter(description = "知识库名称") @RequestParam(required = false) String name,
             @Parameter(description = "状态") @RequestParam(required = false) Integer status) {
         Long creatorId = authService.getCurrentUser().getId();
-        return Result.success(knowledgeBaseService.getKnowledgeBasePage(page, name, creatorId, status));
+        return R.ok(knowledgeBaseService.getKnowledgeBasePage(page, name, creatorId, status));
     }
 
     /**
@@ -58,8 +59,8 @@ public class KbKnowledgeBaseController {
     @Operation(summary = "获取知识库详情")
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('kb:view')")
-    public Result<KbKnowledgeBaseVO> getById(@Parameter(description = "知识库ID") @PathVariable Long id) {
-        return Result.success(knowledgeBaseService.getKnowledgeBaseById(id));
+    public R<KbKnowledgeBaseVO> getById(@Parameter(description = "知识库ID") @PathVariable Long id) {
+        return R.ok(knowledgeBaseService.getKnowledgeBaseById(id));
     }
 
     /**
@@ -71,9 +72,9 @@ public class KbKnowledgeBaseController {
     @Operation(summary = "创建知识库")
     @PostMapping
     @PreAuthorize("hasAuthority('kb:add')")
-    public Result<KbKnowledgeBaseVO> create(@RequestBody KnowledgeBaseDTO dto) {
+    public R<KbKnowledgeBaseVO> create(@RequestBody KnowledgeBaseDTO dto) {
         Long creatorId = authService.getCurrentUser().getId();
-        return Result.success(knowledgeBaseService.createKnowledgeBase(dto.getName(), dto.getDescription(), creatorId));
+        return R.ok(knowledgeBaseService.createKnowledgeBase(dto.getName(), dto.getDescription(), creatorId));
     }
 
     /**
@@ -86,10 +87,10 @@ public class KbKnowledgeBaseController {
     @Operation(summary = "更新知识库")
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('kb:edit')")
-    public Result<KbKnowledgeBaseVO> update(
+    public R<KbKnowledgeBaseVO> update(
             @Parameter(description = "知识库ID") @PathVariable Long id,
             @RequestBody KnowledgeBaseDTO dto) {
-        return Result.success(knowledgeBaseService.updateKnowledgeBase(id, dto.getName(), dto.getDescription()));
+        return R.ok(knowledgeBaseService.updateKnowledgeBase(id, dto.getName(), dto.getDescription()));
     }
 
     /**
@@ -101,9 +102,9 @@ public class KbKnowledgeBaseController {
     @Operation(summary = "删除知识库")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('kb:delete')")
-    public Result<Void> delete(@Parameter(description = "知识库ID") @PathVariable Long id) {
+    public R<Void> delete(@Parameter(description = "知识库ID") @PathVariable Long id) {
         knowledgeBaseService.deleteKnowledgeBase(id);
-        return Result.success();
+        return R.ok(null);
     }
 
     /**
@@ -116,32 +117,28 @@ public class KbKnowledgeBaseController {
     @Operation(summary = "更新知识库状态")
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAuthority('kb:edit')")
-    public Result<Void> updateStatus(
+    public R<Void> updateStatus(
             @Parameter(description = "知识库ID") @PathVariable Long id,
             @Parameter(description = "状态") @RequestParam Integer status) {
         knowledgeBaseService.updateKnowledgeBaseStatus(id, status);
-        return Result.success();
+        return R.ok(null);
     }
 
     /**
      * 分配知识库权限
      *
-     * @param kbId           知识库ID
-     * @param userIds        用户ID列表
-     * @param roleIds        角色ID列表
-     * @param permissionType 权限类型
+     * @param kbId 知识库ID
+     * @param dto  权限信息
      * @return 操作结果
      */
     @Operation(summary = "分配知识库权限")
-    @PostMapping("/{kbId}/permissions")
+    @PostMapping("/assignPermissions/{kbId}")
     @PreAuthorize("hasAuthority('kb:permission')")
-    public Result<Void> assignPermissions(
+    public R<Void> assignPermissions(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
-            @Parameter(description = "用户ID列表") @RequestParam(required = false) List<Long> userIds,
-            @Parameter(description = "角色ID列表") @RequestParam(required = false) List<Long> roleIds,
-            @Parameter(description = "权限类型") @RequestParam Integer permissionType) {
-        knowledgeBaseService.assignKnowledgeBasePermissions(kbId, userIds, roleIds, permissionType);
-        return Result.success();
+            @RequestBody KnowledgeBaseAssignDTO dto) {
+        knowledgeBaseService.assignKnowledgeBasePermissions(kbId, dto.getUserIds(), dto.getRoleIds(), dto.getPermissionType());
+        return R.ok(null);
     }
 
     /**
@@ -151,8 +148,8 @@ public class KbKnowledgeBaseController {
      */
     @Operation(summary = "获取用户可访问的知识库列表")
     @GetMapping("/user/list")
-    public Result<List<KbKnowledgeBaseVO>> getUserKnowledgeBases() {
+    public R<List<KbKnowledgeBaseVO>> getUserKnowledgeBases() {
         Long userId = authService.getCurrentUser().getId();
-        return Result.success(knowledgeBaseService.getUserKnowledgeBases(userId));
+        return R.ok(knowledgeBaseService.getUserKnowledgeBases(userId));
     }
 }

@@ -1,6 +1,7 @@
 package com.dxdou.snowai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.dxdou.snowai.common.R;
 import com.dxdou.snowai.domain.entity.KbChatHistory;
 import com.dxdou.snowai.domain.model.QaRequest;
 import com.dxdou.snowai.domain.model.QaResponse;
@@ -27,43 +28,44 @@ public class KbQaController {
 
     @Operation(summary = "知识库问答")
     @PostMapping("/chat")
-    public QaResponse chat(
+    public R<QaResponse> chat(
             @Parameter(description = "知识库ID") @RequestParam(required = false) Long kbId,
             @RequestBody QaRequest request) {
-        return qaService.chat(kbId, request);
+        return R.ok(qaService.chat(kbId, request));
     }
 
     @Operation(summary = "知识库流式问答")
     @PostMapping("/chat/stream")
-    public SseEmitter streamChat(
+    public R<SseEmitter> streamChat(
             @Parameter(description = "知识库ID") @RequestParam(required = false) Long kbId,
             @RequestBody QaRequest request) {
-        return qaService.streamChat(kbId, request);
+        return R.ok(qaService.streamChat(kbId, request));
     }
 
     @Operation(summary = "通用问答")
     @PostMapping("/general")
-    public QaResponse generalChat(@RequestBody QaRequest request) {
-        return qaService.generalChat(request);
+    public R<QaResponse> generalChat(@RequestBody QaRequest request) {
+        return R.ok(qaService.generalChat(request));
     }
 
     @Operation(summary = "通用流式问答")
     @PostMapping("/general/stream")
-    public SseEmitter streamGeneralChat(@RequestBody QaRequest request) {
-        return qaService.streamGeneralChat(request);
+    public R<SseEmitter> streamGeneralChat(@RequestBody QaRequest request) {
+        return R.ok(qaService.streamGeneralChat(request));
     }
 
     @Operation(summary = "获取对话历史")
     @GetMapping("/history")
-    public Page<KbChatHistory> getChatHistory(
+    public R<Page<KbChatHistory>> getChatHistory(
             @Parameter(description = "会话ID") @RequestParam String sessionId) {
-        return qaService.getChatHistory(sessionId);
+        return R.ok(qaService.getChatHistory(sessionId));
     }
 
     @Operation(summary = "清除对话历史")
     @DeleteMapping("/history/{sessionId}")
-    public void clearChatHistory(
+    public R<Void> clearChatHistory(
             @Parameter(description = "会话ID") @PathVariable String sessionId) {
         qaService.clearChatHistory(sessionId);
+        return R.ok(null);
     }
 }

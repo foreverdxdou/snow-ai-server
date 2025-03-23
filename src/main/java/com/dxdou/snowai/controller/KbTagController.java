@@ -20,7 +20,7 @@ import java.util.List;
  */
 @Tag(name = "标签管理")
 @RestController
-@RequestMapping("/kb/tag")
+@RequestMapping("/api/v1/kb/tag")
 @RequiredArgsConstructor
 public class KbTagController {
 
@@ -47,20 +47,16 @@ public class KbTagController {
 
     @Operation(summary = "创建标签")
     @PostMapping
-    public R<KbTagVO> create(
-            @Parameter(description = "标签名称") @RequestParam String name,
-            @Parameter(description = "标签描述") @RequestParam(required = false) String description,
-            @Parameter(description = "知识库ID") @RequestParam Long kbId) {
-        return R.ok(tagService.createTag(name, description, kbId));
+    public R<KbTagVO> create(@RequestBody KbTag tag) {
+        return R.ok(tagService.createTag(tag.getName(), tag.getDescription(), tag.getKbId()));
     }
 
     @Operation(summary = "更新标签")
     @PutMapping("/{id}")
     public R<KbTagVO> update(
             @Parameter(description = "标签ID") @PathVariable Long id,
-            @Parameter(description = "标签名称") @RequestParam String name,
-            @Parameter(description = "标签描述") @RequestParam(required = false) String description) {
-        return R.ok(tagService.updateTag(id, name, description));
+            @RequestBody KbTag tag) {
+        return R.ok(tagService.updateTag(id, tag.getName(), tag.getDescription()));
     }
 
     @Operation(summary = "删除标签")

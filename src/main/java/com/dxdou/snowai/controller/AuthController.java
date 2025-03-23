@@ -1,6 +1,6 @@
 package com.dxdou.snowai.controller;
 
-import com.dxdou.snowai.common.Result;
+import com.dxdou.snowai.common.R;
 import com.dxdou.snowai.domain.entity.SysUser;
 import com.dxdou.snowai.domain.model.LoginRequest;
 import com.dxdou.snowai.domain.model.LoginResponse;
@@ -32,9 +32,9 @@ public class AuthController {
      */
     @Operation(summary = "用户登录")
     @PostMapping("/login")
-    public Result<LoginResponse> login(@RequestBody LoginRequest request) {
+    public R<LoginResponse> login(@RequestBody LoginRequest request) {
         String token = authService.login(request.getUsername(), request.getPassword());
-        return Result.success(new LoginResponse(token));
+        return R.ok(new LoginResponse(token));
     }
 
     /**
@@ -45,7 +45,7 @@ public class AuthController {
      */
     @Operation(summary = "用户注册")
     @PostMapping("/register")
-    public Result<Void> register(@RequestBody RegisterRequest request) {
+    public R<Void> register(@RequestBody RegisterRequest request) {
         SysUser user = new SysUser();
         user.setUsername(request.getUsername());
         user.setPassword(request.getPassword());
@@ -53,7 +53,7 @@ public class AuthController {
         user.setEmail(request.getEmail());
         user.setStatus(1);
         authService.register(user);
-        return Result.success();
+        return R.ok(null);
     }
 
     /**
@@ -63,9 +63,9 @@ public class AuthController {
      */
     @Operation(summary = "退出登录")
     @PostMapping("/logout")
-    public Result<Void> logout() {
+    public R<Void> logout() {
         authService.logout();
-        return Result.success();
+        return R.ok(null);
     }
 
     /**
@@ -75,7 +75,7 @@ public class AuthController {
      */
     @Operation(summary = "获取当前用户信息")
     @GetMapping("/current-user")
-    public Result<SysUser> getCurrentUser() {
-        return Result.success(authService.getCurrentUser());
+    public R<SysUser> getCurrentUser() {
+        return R.ok(authService.getCurrentUser());
     }
 }
