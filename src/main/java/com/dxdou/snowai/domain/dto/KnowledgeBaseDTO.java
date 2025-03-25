@@ -12,4 +12,7 @@ public class KnowledgeBaseDTO {
 
     @Schema(description = "知识库描述")
     private String description;
+
+    @Schema(description = "分类ID")
+    private Long categoryId;
 }

@@ -34,11 +34,10 @@ public class KbTagController {
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer current,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") Integer size,
             @Parameter(description = "标签名称") @RequestParam(required = false) String name,
-            @Parameter(description = "知识库ID") @RequestParam(required = false) Long kbId,
             @Parameter(description = "创建者ID") @RequestParam(required = false) Long creatorId,
             @Parameter(description = "状态") @RequestParam(required = false) Integer status) {
         Page<KbTag> page = new Page<>(current, size);
-        return R.ok(tagService.getTagPage(page, name, kbId, creatorId, status));
+        return R.ok(tagService.getTagPage(page, name, creatorId, status));
     }
 
     @Operation(summary = "获取标签详情")
@@ -51,7 +50,7 @@ public class KbTagController {
     @PostMapping
     public R<KbTagVO> create(@RequestBody KbTag tag) {
         Long creatorId = authService.getCurrentUser().getId();
-        return R.ok(tagService.createTag(tag.getName(), tag.getDescription(), tag.getKbId(), creatorId));
+        return R.ok(tagService.createTag(tag.getName(), tag.getDescription(), creatorId));
     }
 
     @Operation(summary = "更新标签")
@@ -76,11 +75,5 @@ public class KbTagController {
             @Parameter(description = "状态") @RequestParam Integer status) {
         tagService.updateTagStatus(id, status);
         return R.ok(null);
-    }
-
-    @Operation(summary = "获取知识库标签列表")
-    @GetMapping("/kb/{kbId}")
-    public R<List<KbTagVO>> getTagsByKbId(@Parameter(description = "知识库ID") @PathVariable Long kbId) {
-        return R.ok(tagService.getTagsByKbId(kbId));
     }
 }

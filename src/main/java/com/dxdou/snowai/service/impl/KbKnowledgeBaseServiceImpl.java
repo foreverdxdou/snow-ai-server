@@ -45,7 +45,7 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KbKnowledgeBaseVO createKnowledgeBase(String name, String description, Long creatorId) {
+    public KbKnowledgeBaseVO createKnowledgeBase(String name, String description, Long creatorId, Long categoryId) {
         // 1. 检查知识库名称是否重复
         if (isKnowledgeBaseNameExists(name)) {
             throw new BusinessException("知识库名称已存在");
@@ -55,6 +55,7 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
         KbKnowledgeBase knowledgeBase = new KbKnowledgeBase();
         knowledgeBase.setName(name);
         knowledgeBase.setDescription(description);
+        knowledgeBase.setCategoryId(categoryId);
         knowledgeBase.setCreatorId(creatorId);
         knowledgeBase.setStatus(1);
         knowledgeBase.setCreateTime(LocalDateTime.now());
@@ -75,7 +76,7 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KbKnowledgeBaseVO updateKnowledgeBase(Long id, String name, String description) {
+    public KbKnowledgeBaseVO updateKnowledgeBase(Long id, String name, String description, Long categoryId) {
         // 1. 检查知识库是否存在
         KbKnowledgeBase knowledgeBase = getById(id);
         if (knowledgeBase == null) {
@@ -90,6 +91,7 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
         // 3. 更新知识库
         knowledgeBase.setName(name);
         knowledgeBase.setDescription(description);
+        knowledgeBase.setCategoryId(categoryId);
         knowledgeBase.setUpdateTime(LocalDateTime.now());
         updateById(knowledgeBase);
 

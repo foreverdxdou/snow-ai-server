@@ -40,9 +40,10 @@ public interface KbKnowledgeBaseService extends IService<KbKnowledgeBase> {
      * @param name        知识库名称
      * @param description 知识库描述
      * @param creatorId   创建者ID
+     * @param categoryId  分类ID
      * @return 知识库信息
      */
-    KbKnowledgeBaseVO createKnowledgeBase(String name, String description, Long creatorId);
+    KbKnowledgeBaseVO createKnowledgeBase(String name, String description, Long creatorId, Long categoryId);
 
     /**
      * 更新知识库
@@ -50,9 +51,10 @@ public interface KbKnowledgeBaseService extends IService<KbKnowledgeBase> {
      * @param id          知识库ID
      * @param name        知识库名称
      * @param description 知识库描述
+     * @param categoryId  分类ID
      * @return 知识库信息
      */
-    KbKnowledgeBaseVO updateKnowledgeBase(Long id, String name, String description);
+    KbKnowledgeBaseVO updateKnowledgeBase(Long id, String name, String description, Long categoryId);
 
     /**
      * 删除知识库

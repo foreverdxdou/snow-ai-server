@@ -33,8 +33,8 @@ public class KbCategoryServiceImpl extends ServiceImpl<KbCategoryMapper, KbCateg
     private final KbCategoryMapper categoryMapper;
 
     @Override
-    public Page<KbCategoryVO> getCategoryPage(Page<KbCategory> page, Long kbId, String name, Integer status) {
-        return categoryMapper.selectCategoryList(page, kbId, name, status);
+    public Page<KbCategoryVO> getCategoryPage(Page<KbCategory> page, String name, Integer status) {
+        return categoryMapper.selectCategoryList(page, name, status);
     }
 
     @Override
@@ -141,9 +141,9 @@ public class KbCategoryServiceImpl extends ServiceImpl<KbCategoryMapper, KbCateg
     }
 
     @Override
-    public List<KbCategoryVO> getCategoryTree(Long kbId) {
+    public List<KbCategoryVO> getCategoryTree() {
         // 1. 获取分类树
-        List<KbCategoryVO> categories = categoryMapper.selectCategoryTree(kbId);
+        List<KbCategoryVO> categories = categoryMapper.selectCategoryTree();
         if (CollectionUtils.isEmpty(categories)) {
             return new ArrayList<>();
         }

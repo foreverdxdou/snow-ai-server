@@ -21,21 +21,19 @@ public interface KbCategoryMapper extends BaseMapper<KbCategory> {
      * 分页查询分类列表
      *
      * @param page   分页参数
-     * @param kbId   知识库ID
      * @param name   分类名称
      * @param status 状态
      * @return 分类列表
      */
-    Page<KbCategoryVO> selectCategoryList(Page<KbCategory> page, @Param("kbId") Long kbId,
+    Page<KbCategoryVO> selectCategoryList(Page<KbCategory> page,
             @Param("name") String name, @Param("status") Integer status);
 
     /**
      * 查询分类树
      *
-     * @param kbId 知识库ID
      * @return 分类树
      */
-    List<KbCategoryVO> selectCategoryTree(@Param("kbId") Long kbId);
+    List<KbCategoryVO> selectCategoryTree();
 
     /**
      * 根据ID查询分类信息

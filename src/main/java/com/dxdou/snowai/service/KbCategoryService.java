@@ -18,12 +18,11 @@ public interface KbCategoryService extends IService<KbCategory> {
      * 分页查询分类列表
      *
      * @param page   分页参数
-     * @param kbId   知识库ID
      * @param name   分类名称
      * @param status 状态
      * @return 分类列表
      */
-    Page<KbCategoryVO> getCategoryPage(Page<KbCategory> page, Long kbId, String name, Integer status);
+    Page<KbCategoryVO> getCategoryPage(Page<KbCategory> page, String name, Integer status);
 
     /**
      * 根据ID查询分类信息
@@ -77,10 +76,9 @@ public interface KbCategoryService extends IService<KbCategory> {
     /**
      * 获取知识库的分类树
      *
-     * @param kbId 知识库ID
      * @return 分类树
      */
-    List<KbCategoryVO> getCategoryTree(Long kbId);
+    List<KbCategoryVO> getCategoryTree();
 
     /**
      * 移动分类

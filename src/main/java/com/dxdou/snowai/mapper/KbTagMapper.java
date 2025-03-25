@@ -20,13 +20,11 @@ public interface KbTagMapper extends BaseMapper<KbTag> {
      *
      * @param page      分页参数
      * @param name      标签名称
-     * @param kbId      知识库ID
      * @param creatorId 创建者ID
      * @param status    状态
      * @return 标签列表
      */
-    Page<KbTagVO> selectTagList(Page<KbTag> page, @Param("name") String name,
-            @Param("kbId") Long kbId, @Param("creatorId") Long creatorId,
+    Page<KbTagVO> selectTagList(Page<KbTag> page, @Param("name") String name, @Param("creatorId") Long creatorId,
             @Param("status") Integer status);
 
     /**
@@ -36,14 +34,6 @@ public interface KbTagMapper extends BaseMapper<KbTag> {
      * @return 标签信息
      */
     KbTagVO selectTagById(@Param("id") Long id);
-
-    /**
-     * 根据知识库ID查询标签列表
-     *
-     * @param kbId 知识库ID
-     * @return 标签列表
-     */
-    List<KbTagVO> selectByKbId(@Param("kbId") Long kbId);
 
     /**
      * 查询文档的标签列表

@@ -17,10 +17,21 @@ import com.dxdou.snowai.mapper.KbDocumentVersionMapper;
 import com.dxdou.snowai.service.KbDocumentService;
 import com.dxdou.snowai.service.MinioService;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.hslf.usermodel.*;
+import org.apache.poi.xslf.usermodel.*;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -51,7 +62,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
     @Override
     @Transactional(rollbackFor = Exception.class)
     public KbDocumentVO uploadDocument(MultipartFile file, String title, Long kbId, Long categoryId,
-                                       List<Long> tagIds, Long creatorId) {
+            List<Long> tagIds, Long creatorId) {
         // 1. 保存文件到MinIO
         String fileUrl = uploadFileToMinio(file);
 
@@ -187,6 +198,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         version.setTitle(document.getTitle());
         version.setContent(document.getContent());
         version.setFileUrl(document.getFileUrl());
+        version.setCreatorId(document.getCreatorId());
         documentVersionMapper.insert(version);
     }
 
@@ -233,20 +245,87 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
                 case "txt":
                     return new String(file.getBytes());
                 case "doc":
+                    return parseDoc(file.getInputStream());
                 case "docx":
-                    // TODO: 使用Apache POI解析Word文档
-                    throw new BusinessException("暂不支持Word文档解析");
+                    return parseDocx(file.getInputStream());
                 case "pdf":
-                    // TODO: 使用Apache PDFBox解析PDF文档
-                    throw new BusinessException("暂不支持PDF文档解析");
+                    return parsePdf(file.getInputStream());
                 case "md":
                     return new String(file.getBytes());
+                case "ppt":
+                    return parsePpt(file.getInputStream());
+                case "pptx":
+                    return parsePptx(file.getInputStream());
                 default:
                     throw new BusinessException("不支持的文件类型：" + extension);
             }
         } catch (Exception e) {
             log.error("文档解析失败", e);
             throw new BusinessException("文档解析失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 解析DOC文档
+     */
+    private String parseDoc(InputStream inputStream) throws IOException {
+        try (HWPFDocument doc = new HWPFDocument(inputStream);
+                WordExtractor extractor = new WordExtractor(doc)) {
+            return extractor.getText();
+        }
+    }
+
+    /**
+     * 解析DOCX文档
+     */
+    private String parseDocx(InputStream inputStream) throws IOException {
+        try (XWPFDocument document = new XWPFDocument(inputStream);
+                XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
+            return extractor.getText();
+        }
+    }
+
+    /**
+     * 解析PDF文档
+     */
+    private String parsePdf(InputStream inputStream) throws IOException {
+        try (PDDocument document = PDDocument.load(inputStream)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            return stripper.getText(document);
+        }
+    }
+
+    /**
+     * 解析PPT文档
+     */
+    private String parsePpt(InputStream inputStream) throws IOException {
+        try (HSLFSlideShow ppt = new HSLFSlideShow(inputStream)) {
+            StringBuilder content = new StringBuilder();
+            for (HSLFSlide slide : ppt.getSlides()) {
+                for (HSLFShape shape : slide.getShapes()) {
+                    if (shape instanceof HSLFTextShape) {
+                        content.append(((HSLFTextShape) shape).getText()).append("\n");
+                    }
+                }
+            }
+            return content.toString();
+        }
+    }
+
+    /**
+     * 解析PPTX文档
+     */
+    private String parsePptx(InputStream inputStream) throws IOException {
+        try (XMLSlideShow pptx = new XMLSlideShow(inputStream)) {
+            StringBuilder content = new StringBuilder();
+            for (XSLFSlide slide : pptx.getSlides()) {
+                for (XSLFShape shape : slide.getShapes()) {
+                    if (shape instanceof XSLFTextShape) {
+                        content.append(((XSLFTextShape) shape).getText()).append("\n");
+                    }
+                }
+            }
+            return content.toString();
         }
     }
 }

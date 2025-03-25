@@ -34,6 +34,11 @@ public class KbKnowledgeBase {
     private String description;
 
     /**
+     * 分类ID
+     */
+    private Long categoryId;
+
+    /**
      * 创建者ID
      */
     private Long creatorId;

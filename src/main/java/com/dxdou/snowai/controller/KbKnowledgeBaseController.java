@@ -74,7 +74,7 @@ public class KbKnowledgeBaseController {
     @PreAuthorize("hasAuthority('kb:add')")
     public R<KbKnowledgeBaseVO> create(@RequestBody KnowledgeBaseDTO dto) {
         Long creatorId = authService.getCurrentUser().getId();
-        return R.ok(knowledgeBaseService.createKnowledgeBase(dto.getName(), dto.getDescription(), creatorId));
+        return R.ok(knowledgeBaseService.createKnowledgeBase(dto.getName(), dto.getDescription(), creatorId, dto.getCategoryId()));
     }
 
     /**
@@ -90,7 +90,7 @@ public class KbKnowledgeBaseController {
     public R<KbKnowledgeBaseVO> update(
             @Parameter(description = "知识库ID") @PathVariable Long id,
             @RequestBody KnowledgeBaseDTO dto) {
-        return R.ok(knowledgeBaseService.updateKnowledgeBase(id, dto.getName(), dto.getDescription()));
+        return R.ok(knowledgeBaseService.updateKnowledgeBase(id, dto.getName(), dto.getDescription(), dto.getCategoryId()));
     }
 
     /**

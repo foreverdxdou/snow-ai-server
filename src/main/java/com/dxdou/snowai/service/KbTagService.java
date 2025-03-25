@@ -19,12 +19,11 @@ public interface KbTagService extends IService<KbTag> {
      *
      * @param page      分页参数
      * @param name      标签名称
-     * @param kbId      知识库ID
      * @param creatorId 创建者ID
      * @param status    状态
      * @return 标签列表
      */
-    Page<KbTagVO> getTagPage(Page<KbTag> page, String name, Long kbId, Long creatorId, Integer status);
+    Page<KbTagVO> getTagPage(Page<KbTag> page, String name,Long creatorId, Integer status);
 
     /**
      * 根据ID查询标签
@@ -39,11 +38,10 @@ public interface KbTagService extends IService<KbTag> {
      *
      * @param name        标签名称
      * @param description 标签描述
-     * @param kbId        知识库ID
      * @param creatorId
      * @return 标签信息
      */
-    KbTagVO createTag(String name, String description, Long kbId, Long creatorId);
+    KbTagVO createTag(String name, String description, Long creatorId);
 
     /**
      * 更新标签
@@ -69,12 +67,4 @@ public interface KbTagService extends IService<KbTag> {
      * @param status 状态
      */
     void updateTagStatus(Long id, Integer status);
-
-    /**
-     * 获取知识库的标签列表
-     *
-     * @param kbId 知识库ID
-     * @return 标签列表
-     */
-    List<KbTagVO> getTagsByKbId(Long kbId);
 }

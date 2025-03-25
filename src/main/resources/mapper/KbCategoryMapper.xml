@@ -8,7 +8,6 @@
         <result column="name" property="name" />
         <result column="description" property="description" />
         <result column="parent_id" property="parentId" />
-        <result column="kb_id" property="kbId" />
         <result column="sort" property="sort" />
         <result column="creator_id" property="creatorId" />
         <result column="status" property="status" />
@@ -23,7 +22,6 @@
         <result column="name" property="name" />
         <result column="description" property="description" />
         <result column="parent_id" property="parentId" />
-        <result column="kb_id" property="kbId" />
         <result column="sort" property="sort" />
         <result column="creator_id" property="creatorId" />
         <result column="creator_name" property="creatorName" />
@@ -37,7 +35,7 @@
     <select id="selectCategoryList" resultMap="CategoryVOMap"> SELECT c.*, u.nickname as
         creator_name, (SELECT COUNT(*) FROM kb_document d WHERE d.category_id = c.id AND d.deleted =
         0) as document_count FROM kb_category c LEFT JOIN sys_user u ON c.creator_id = u.id WHERE
-        c.deleted = 0 <if test="kbId != null"> AND c.kb_id = #{kbId} </if>
+        c.deleted = 0
             <if
             test="name != null and name != ''"> AND c.name LIKE CONCAT('%', #{name}, '%') </if>
             <if
@@ -54,21 +52,21 @@
     <select id="selectCategoryListByKbId" resultMap="CategoryVOMap"> SELECT c.*, u.nickname as
         creator_name, (SELECT COUNT(*) FROM kb_document d WHERE d.category_id = c.id AND d.deleted =
         0) as document_count FROM kb_category c LEFT JOIN sys_user u ON c.creator_id = u.id WHERE
-        c.kb_id = #{kbId} AND c.deleted = 0 AND c.status = 1 ORDER BY c.sort ASC, c.create_time DESC </select>
+        c.deleted = 0 AND c.status = 1 ORDER BY c.sort ASC, c.create_time DESC </select>
 
     <!-- 查询分类树 -->
     <select id="selectCategoryTree" resultMap="CategoryVOMap"> WITH RECURSIVE category_tree AS (
-        SELECT c.id, c.parent_id, c.name, c.sort, c.kb_id, c.create_time, c.update_time, CASE WHEN
+        SELECT c.id, c.parent_id, c.name, c.sort, c.create_time, c.update_time, CASE WHEN
         EXISTS(SELECT 1 FROM kb_category WHERE parent_id = c.id AND deleted = 0) THEN 1 ELSE 0 END
-        as has_children FROM kb_category c WHERE c.kb_id = #{kbId} AND c.deleted = 0 AND c.parent_id
-        IS NULL UNION ALL SELECT c.id, c.parent_id, c.name, c.sort, c.kb_id, c.create_time,
+        as has_children FROM kb_category c WHERE c.deleted = 0 AND c.parent_id
+        IS NULL UNION ALL SELECT c.id, c.parent_id, c.name, c.sort, c.create_time,
         c.update_time, CASE WHEN EXISTS(SELECT 1 FROM kb_category WHERE parent_id = c.id AND deleted
         = 0) THEN 1 ELSE 0 END as has_children FROM kb_category c INNER JOIN category_tree ct ON
         c.parent_id = ct.id WHERE c.deleted = 0 ) SELECT * FROM category_tree ORDER BY sort ASC </select>
 
     <!-- 查询子分类列表 -->
     <select id="selectChildren" resultMap="CategoryVOMap"> SELECT c.id, c.parent_id, c.name, c.sort,
-        c.kb_id, c.create_time, c.update_time, CASE WHEN EXISTS(SELECT 1 FROM kb_category WHERE
+        c.create_time, c.update_time, CASE WHEN EXISTS(SELECT 1 FROM kb_category WHERE
         parent_id = c.id AND deleted = 0) THEN 1 ELSE 0 END as has_children FROM kb_category c WHERE
         c.parent_id = #{parentId} AND c.deleted = 0 ORDER BY c.sort ASC </select>
 

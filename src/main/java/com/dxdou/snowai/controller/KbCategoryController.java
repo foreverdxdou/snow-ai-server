@@ -45,10 +45,9 @@ public class KbCategoryController {
     @PreAuthorize("hasAuthority('kb:category:list')")
     public R<Page<KbCategoryVO>> list(
             @Parameter(description = "分页参数") Page<KbCategory> page,
-            @Parameter(description = "知识库ID") @RequestParam Long kbId,
             @Parameter(description = "分类名称") @RequestParam(required = false) String name,
             @Parameter(description = "状态") @RequestParam(required = false) Integer status) {
-        return R.ok(categoryService.getCategoryPage(page, kbId, name, status));
+        return R.ok(categoryService.getCategoryPage(page, name, status));
     }
 
     /**
@@ -128,13 +127,12 @@ public class KbCategoryController {
     /**
      * 获取知识库的分类树
      *
-     * @param kbId 知识库ID
      * @return 分类树
      */
     @Operation(summary = "获取知识库的分类树")
-    @GetMapping("/tree/{kbId}")
-    public R<List<KbCategoryVO>> getCategoryTree(@Parameter(description = "知识库ID") @PathVariable Long kbId) {
-        return R.ok(categoryService.getCategoryTree(kbId));
+    @GetMapping("/tree")
+    public R<List<KbCategoryVO>> getCategoryTree() {
+        return R.ok(categoryService.getCategoryTree());
     }
 
     /**
