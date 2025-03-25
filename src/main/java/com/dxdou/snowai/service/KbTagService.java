@@ -40,9 +40,10 @@ public interface KbTagService extends IService<KbTag> {
      * @param name        标签名称
      * @param description 标签描述
      * @param kbId        知识库ID
+     * @param creatorId
      * @return 标签信息
      */
-    KbTagVO createTag(String name, String description, Long kbId);
+    KbTagVO createTag(String name, String description, Long kbId, Long creatorId);
 
     /**
      * 更新标签

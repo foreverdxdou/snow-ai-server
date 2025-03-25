@@ -48,9 +48,10 @@ public interface KbDocumentService extends IService<KbDocument> {
      * @param kbId       知识库ID
      * @param categoryId 分类ID
      * @param tagIds     标签ID列表
+     * @param creatorId
      * @return 文档信息
      */
-    KbDocumentVO uploadDocument(MultipartFile file, String title, Long kbId, Long categoryId, List<Long> tagIds);
+    KbDocumentVO uploadDocument(MultipartFile file, String title, Long kbId, Long categoryId, List<Long> tagIds, Long creatorId);
 
     /**
      * 更新文档

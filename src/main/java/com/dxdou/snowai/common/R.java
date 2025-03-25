@@ -34,7 +34,7 @@ public class R<T> {
     public static <T> R<T> ok(T data) {
         R<T> r = new R<>();
         r.setCode(200);
-        r.setMessage("success");
+        r.setMessage("操作成功");
         r.setData(data);
         return r;
     }

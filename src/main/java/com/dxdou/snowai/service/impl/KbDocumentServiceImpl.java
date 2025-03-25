@@ -51,7 +51,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
     @Override
     @Transactional(rollbackFor = Exception.class)
     public KbDocumentVO uploadDocument(MultipartFile file, String title, Long kbId, Long categoryId,
-            List<Long> tagIds) {
+                                       List<Long> tagIds, Long creatorId) {
         // 1. 保存文件到MinIO
         String fileUrl = uploadFileToMinio(file);
 
@@ -60,7 +60,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
 
         // 3. 保存文档信息
         KbDocument document = new KbDocument();
-        document.setTitle(title);
+        document.setTitle(file.getOriginalFilename());
         document.setContent(content);
         document.setFileType(file.getContentType());
         document.setFileSize(file.getSize());
@@ -69,6 +69,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         document.setKbId(kbId);
         document.setVersion(1);
         document.setStatus(1);
+        document.setCreatorId(creatorId);
         documentMapper.insert(document);
 
         // 4. 保存文档版本

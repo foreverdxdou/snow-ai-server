@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dxdou.snowai.common.R;
 import com.dxdou.snowai.domain.entity.KbTag;
 import com.dxdou.snowai.domain.vo.KbTagVO;
+import com.dxdou.snowai.service.AuthService;
 import com.dxdou.snowai.service.KbTagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,6 +26,7 @@ import java.util.List;
 public class KbTagController {
 
     private final KbTagService tagService;
+    private final AuthService authService;
 
     @Operation(summary = "分页查询标签列表")
     @GetMapping("/page")
@@ -48,7 +50,8 @@ public class KbTagController {
     @Operation(summary = "创建标签")
     @PostMapping
     public R<KbTagVO> create(@RequestBody KbTag tag) {
-        return R.ok(tagService.createTag(tag.getName(), tag.getDescription(), tag.getKbId()));
+        Long creatorId = authService.getCurrentUser().getId();
+        return R.ok(tagService.createTag(tag.getName(), tag.getDescription(), tag.getKbId(), creatorId));
     }
 
     @Operation(summary = "更新标签")

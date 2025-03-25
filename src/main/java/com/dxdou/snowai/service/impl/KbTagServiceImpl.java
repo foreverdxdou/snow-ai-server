@@ -38,7 +38,7 @@ public class KbTagServiceImpl extends ServiceImpl<KbTagMapper, KbTag> implements
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KbTagVO createTag(String name, String description, Long kbId) {
+    public KbTagVO createTag(String name, String description, Long kbId, Long creatorId) {
         // 1. 检查标签名称是否重复
         if (isTagNameExists(name, kbId)) {
             throw new BusinessException("标签名称已存在");
@@ -51,6 +51,7 @@ public class KbTagServiceImpl extends ServiceImpl<KbTagMapper, KbTag> implements
         tag.setKbId(kbId);
         tag.setStatus(1);
         tag.setCreateTime(LocalDateTime.now());
+        tag.setCreatorId(creatorId);
         tag.setUpdateTime(LocalDateTime.now());
         save(tag);
 

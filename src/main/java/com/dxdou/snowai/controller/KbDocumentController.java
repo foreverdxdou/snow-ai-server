@@ -7,6 +7,7 @@ import com.dxdou.snowai.domain.entity.KbDocument;
 import com.dxdou.snowai.domain.vo.KbDocumentVO;
 import com.dxdou.snowai.domain.vo.KbDocumentVersionVO;
 import com.dxdou.snowai.domain.vo.KbTagVO;
+import com.dxdou.snowai.service.AuthService;
 import com.dxdou.snowai.service.KbDocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,6 +30,7 @@ import java.util.List;
 public class KbDocumentController {
 
     private final KbDocumentService documentService;
+    private final AuthService authService;
 
     @Operation(summary = "分页查询文档列表")
     @GetMapping("/page")
@@ -54,11 +56,12 @@ public class KbDocumentController {
     @PostMapping("/upload")
     public R<KbDocumentVO> upload(
             @Parameter(description = "文件") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "标题") @RequestParam String title,
+            @Parameter(description = "标题") @RequestParam(required = false) String title,
             @Parameter(description = "知识库ID") @RequestParam Long kbId,
             @Parameter(description = "分类ID") @RequestParam(required = false) Long categoryId,
             @Parameter(description = "标签ID列表") @RequestParam(required = false) List<Long> tagIds) {
-        return R.ok(documentService.uploadDocument(file, title, kbId, categoryId, tagIds));
+        Long creatorId = authService.getCurrentUser().getId();
+        return R.ok(documentService.uploadDocument(file, title, kbId, categoryId, tagIds, creatorId));
     }
 
     @Operation(summary = "更新文档")
