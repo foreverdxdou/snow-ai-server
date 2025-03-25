@@ -45,9 +45,10 @@ public class KbKnowledgeBaseController {
     public R<Page<KbKnowledgeBaseVO>> list(
             @Parameter(description = "分页参数") Page<KbKnowledgeBase> page,
             @Parameter(description = "知识库名称") @RequestParam(required = false) String name,
+            @Parameter(description = "分类ID") @RequestParam(required = false) Long categoryId,
             @Parameter(description = "状态") @RequestParam(required = false) Integer status) {
         Long creatorId = authService.getCurrentUser().getId();
-        return R.ok(knowledgeBaseService.getKnowledgeBasePage(page, name, creatorId, status));
+        return R.ok(knowledgeBaseService.getKnowledgeBasePage(page, name, creatorId, status, categoryId));
     }
 
     /**

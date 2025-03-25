@@ -158,7 +158,7 @@ public class KbCategoryServiceImpl extends ServiceImpl<KbCategoryMapper, KbCateg
 
         // 3. 返回根节点列表
         return categories.stream()
-                .filter(category -> category.getParentId() == null)
+                .filter(category -> category.getParentId() == 0)
                 .collect(Collectors.toList());
     }
 

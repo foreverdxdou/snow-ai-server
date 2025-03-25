@@ -17,14 +17,15 @@ public interface KbKnowledgeBaseService extends IService<KbKnowledgeBase> {
     /**
      * 分页查询知识库列表
      *
-     * @param page      分页参数
-     * @param name      知识库名称
-     * @param creatorId 创建者ID
-     * @param status    状态
+     * @param page       分页参数
+     * @param name       知识库名称
+     * @param creatorId  创建者ID
+     * @param status     状态
+     * @param categoryId
      * @return 知识库列表
      */
     Page<KbKnowledgeBaseVO> getKnowledgeBasePage(Page<KbKnowledgeBase> page, String name, Long creatorId,
-            Integer status);
+                                                 Integer status, Long categoryId);
 
     /**
      * 根据ID查询知识库信息

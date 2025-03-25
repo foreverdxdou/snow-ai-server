@@ -44,6 +44,11 @@ public class KbKnowledgeBaseVO {
     private Long deptId;
 
     /**
+     * 分类ID
+     */
+    private Long categoryId;
+
+    /**
      * 部门名称
      */
     private String deptName;

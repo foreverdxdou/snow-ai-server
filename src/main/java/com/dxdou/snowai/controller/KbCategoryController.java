@@ -35,7 +35,6 @@ public class KbCategoryController {
      * 分页查询分类列表
      *
      * @param page   分页参数
-     * @param kbId   知识库ID
      * @param name   分类名称
      * @param status 状态
      * @return 分类列表

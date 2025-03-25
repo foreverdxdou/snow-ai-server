@@ -20,14 +20,15 @@ public interface KbKnowledgeBaseMapper extends BaseMapper<KbKnowledgeBase> {
     /**
      * 分页查询知识库列表
      *
-     * @param page      分页参数
-     * @param name      知识库名称
-     * @param creatorId 创建者ID
-     * @param status    状态
+     * @param page       分页参数
+     * @param name       知识库名称
+     * @param creatorId  创建者ID
+     * @param status     状态
+     * @param categoryId
      * @return 知识库列表
      */
     Page<KbKnowledgeBaseVO> selectKnowledgeBaseList(Page<KbKnowledgeBase> page, @Param("name") String name,
-            @Param("creatorId") Long creatorId, @Param("status") Integer status);
+                                                    @Param("creatorId") Long creatorId, @Param("status") Integer status, @Param("categoryId") Long categoryId);
 
     /**
      * 根据ID查询知识库信息

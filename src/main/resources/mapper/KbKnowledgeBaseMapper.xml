@@ -40,6 +40,7 @@
         kb.deleted = 0 <if test="name != null and name != ''"> AND kb.name LIKE CONCAT('%', #{name},
         '%') </if>
             <if test="creatorId != null"> AND kb.creator_id = #{creatorId} </if>
+            <if test="categoryId != null"> AND kb.category_id = #{categoryId} </if>
             <if test="status != null"> AND kb.status = #{status} </if>
         </where> ORDER BY
         kb.create_time DESC </select>

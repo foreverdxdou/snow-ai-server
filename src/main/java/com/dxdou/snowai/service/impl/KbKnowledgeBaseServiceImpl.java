@@ -34,8 +34,8 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
 
     @Override
     public Page<KbKnowledgeBaseVO> getKnowledgeBasePage(Page<KbKnowledgeBase> page, String name, Long creatorId,
-            Integer status) {
-        return knowledgeBaseMapper.selectKnowledgeBaseList(page, name, creatorId, status);
+                                                        Integer status, Long categoryId) {
+        return knowledgeBaseMapper.selectKnowledgeBaseList(page, name, creatorId, status, categoryId);
     }
 
     @Override
