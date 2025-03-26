@@ -34,11 +34,6 @@ public class KbCategoryVO {
     private Long parentId;
 
     /**
-     * 知识库ID
-     */
-    private Long kbId;
-
-    /**
      * 排序号
      */
     private Integer sort;

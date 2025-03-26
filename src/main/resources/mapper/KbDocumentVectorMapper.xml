@@ -21,7 +21,9 @@
     <!-- 查找相似向量 -->
     <select id="findSimilarVectors" resultMap="BaseResultMap"> SELECT dv.*, 1 - (dv.content_vector
         &lt;=&gt; #{queryVector}::vector) as similarity FROM kb_document_vector dv JOIN kb_document
-        d ON dv.document_id = d.id WHERE d.kb_id = #{kbId} ORDER BY dv.content_vector &lt;=&gt;
+        d ON dv.document_id = d.id WHERE d.kb_id in
+        <foreach collection="kbIds" item="kbId" open="(" separator="," close=")"> #{kbId} </foreach>
+        ORDER BY dv.content_vector &lt;=&gt;
         #{queryVector}::vector LIMIT #{limit} </select>
 
     <!-- 根据文档ID查询向量 -->

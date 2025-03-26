@@ -41,7 +41,7 @@ public interface KbRecommendService {
      * @param page  分页参数
      * @return 推荐结果
      */
-    Page<KbSearchVO> getRelatedRecommendations(Long docId, Long kbId, Page<KbSearchVO> page);
+    Page<KbSearchVO> getRelatedRecommendations(Long docId, Long[] kbIds, Page<KbSearchVO> page);
 
     /**
      * 记录用户行为

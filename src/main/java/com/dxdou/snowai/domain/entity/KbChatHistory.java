@@ -21,7 +21,7 @@ public class KbChatHistory {
 
     private String sessionId;
 
-    private Long kbId;
+    private String kbIds;
 
     private Long userId;
 

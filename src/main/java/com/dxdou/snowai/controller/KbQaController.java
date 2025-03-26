@@ -29,17 +29,17 @@ public class KbQaController {
     @Operation(summary = "知识库问答")
     @PostMapping("/chat")
     public R<QaResponse> chat(
-            @Parameter(description = "知识库ID") @RequestParam(required = false) Long kbId,
+            @Parameter(description = "知识库ID列表") @RequestParam(required = false) Long[] kbIds,
             @RequestBody QaRequest request) {
-        return R.ok(qaService.chat(kbId, request));
+        return R.ok(qaService.chat(kbIds, request));
     }
 
     @Operation(summary = "知识库流式问答")
     @PostMapping("/chat/stream")
-    public R<SseEmitter> streamChat(
-            @Parameter(description = "知识库ID") @RequestParam(required = false) Long kbId,
+    public SseEmitter streamChat(
+            @Parameter(description = "知识库ID列表") @RequestParam(required = false) Long[] kbIds,
             @RequestBody QaRequest request) {
-        return R.ok(qaService.streamChat(kbId, request));
+        return qaService.streamChat(kbIds, request);
     }
 
     @Operation(summary = "通用问答")
@@ -50,8 +50,8 @@ public class KbQaController {
 
     @Operation(summary = "通用流式问答")
     @PostMapping("/general/stream")
-    public R<SseEmitter> streamGeneralChat(@RequestBody QaRequest request) {
-        return R.ok(qaService.streamGeneralChat(request));
+    public SseEmitter streamGeneralChat(@RequestBody QaRequest request) {
+        return qaService.streamGeneralChat(request);
     }
 
     @Operation(summary = "获取对话历史")

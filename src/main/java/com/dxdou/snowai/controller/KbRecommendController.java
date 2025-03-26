@@ -50,11 +50,11 @@ public class KbRecommendController {
     @GetMapping("/related")
     public R<Page<KbSearchVO>> getRelatedRecommendations(
             @Parameter(description = "文档ID") @RequestParam Long docId,
-            @Parameter(description = "知识库ID") @RequestParam Long kbId,
+            @Parameter(description = "知识库ID列表") @RequestParam Long[] kbIds,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") long current,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") long size) {
         Page<KbSearchVO> page = new Page<>(current, size);
-        return R.ok(recommendService.getRelatedRecommendations(docId, kbId, page));
+        return R.ok(recommendService.getRelatedRecommendations(docId, kbIds, page));
     }
 
     @Operation(summary = "记录用户行为")

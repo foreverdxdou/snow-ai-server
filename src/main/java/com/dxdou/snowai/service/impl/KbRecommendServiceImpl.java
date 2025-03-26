@@ -101,7 +101,7 @@ public class KbRecommendServiceImpl extends ServiceImpl<KbUserBehaviorMapper, Kb
     }
 
     @Override
-    public Page<KbSearchVO> getRelatedRecommendations(Long docId, Long kbId, Page<KbSearchVO> page) {
+    public Page<KbSearchVO> getRelatedRecommendations(Long docId, Long[] kbIds, Page<KbSearchVO> page) {
         // 1. 获取当前文档
         KbDocument currentDoc = documentMapper.selectById(docId);
         if (currentDoc == null) {
@@ -109,7 +109,7 @@ public class KbRecommendServiceImpl extends ServiceImpl<KbUserBehaviorMapper, Kb
         }
 
         // 2. 使用语义搜索查找相关文档
-        Page<KbSearchVO> searchPage = searchService.semanticSearch(currentDoc.getContent(), kbId, page, null);
+        Page<KbSearchVO> searchPage = searchService.semanticSearch(currentDoc.getContent(), kbIds, page, null);
 
         // 3. 过滤掉当前文档
         List<KbSearchVO> relatedDocs = searchPage.getRecords().stream()

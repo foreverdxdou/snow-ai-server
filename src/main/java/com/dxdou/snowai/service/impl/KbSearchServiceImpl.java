@@ -35,12 +35,12 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     private final StanfordCoreNLP nlpPipeline;
 
     @Override
-    public Page<KbSearchVO> semanticSearch(String query, Long kbId, Page<KbSearchVO> page, List<Long> tagIds) {
+    public Page<KbSearchVO> semanticSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> tagIds) {
         // 1. 获取查询词的向量表示
         float[] queryVector = getQueryVector(query);
 
         // 2. 从向量数据库中检索相似文档
-        List<KbDocumentVector> similarVectors = documentVectorMapper.findSimilarVectors(queryVector, kbId,
+        List<KbDocumentVector> similarVectors = documentVectorMapper.findSimilarVectors(queryVector, kbIds,
                 page.getSize());
 
         // 3. 获取文档ID列表
@@ -69,10 +69,10 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     }
 
     @Override
-    public Page<KbSearchVO> keywordSearch(String query, Long kbId, Page<KbSearchVO> page, List<Long> tagIds) {
+    public Page<KbSearchVO> keywordSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> tagIds) {
         // 1. 构建查询条件
         LambdaQueryWrapper<KbDocument> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KbDocument::getKbId, kbId)
+        wrapper.in(KbDocument::getKbId, kbIds)
                 .and(w -> w.like(KbDocument::getTitle, query)
                         .or()
                         .like(KbDocument::getContent, query));
@@ -100,12 +100,12 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     }
 
     @Override
-    public Page<KbSearchVO> hybridSearch(String query, Long kbId, Page<KbSearchVO> page, List<Long> tagIds) {
+    public Page<KbSearchVO> hybridSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> tagIds) {
         // 1. 获取语义搜索结果
-        Page<KbSearchVO> semanticResults = semanticSearch(query, kbId, page, tagIds);
+        Page<KbSearchVO> semanticResults = semanticSearch(query, kbIds, page, tagIds);
 
         // 2. 获取关键词搜索结果
-        Page<KbSearchVO> keywordResults = keywordSearch(query, kbId, page, tagIds);
+        Page<KbSearchVO> keywordResults = keywordSearch(query, kbIds, page, tagIds);
 
         // 3. 合并结果并去重
         Set<Long> docIds = new HashSet<>();

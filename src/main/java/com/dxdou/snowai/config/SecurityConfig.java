@@ -5,6 +5,7 @@ import com.dxdou.snowai.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -37,6 +38,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .securityMatcher(request -> {
+                    // 识别SSE请求的特殊处理
+                    String contentType = request.getHeader("Content-Type");
+                    return !request.getRequestURI().startsWith("/api/v1/kb/qa/general/stream")
+                            || !MediaType.APPLICATION_JSON_VALUE.equals(contentType);
+                })
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(SecurityConstants.EXCLUDED_URLS).permitAll()

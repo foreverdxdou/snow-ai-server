@@ -19,12 +19,12 @@ public interface KbDocumentVectorMapper extends BaseMapper<KbDocumentVector> {
      * 查找相似向量
      *
      * @param queryVector 查询向量
-     * @param kbId        知识库ID
+     * @param kbIds        知识库ID列表
      * @param limit       限制数量
      * @return 相似向量列表
      */
     List<KbDocumentVector> findSimilarVectors(@Param("queryVector") float[] queryVector,
-            @Param("kbId") Long kbId, @Param("limit") long limit);
+            @Param("kbIds") Long[] kbIds, @Param("limit") long limit);
 
     /**
      * 根据文档ID查询向量

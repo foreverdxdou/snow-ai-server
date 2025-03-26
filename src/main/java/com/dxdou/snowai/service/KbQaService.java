@@ -16,20 +16,20 @@ public interface KbQaService {
     /**
      * 知识库问答
      *
-     * @param kbId    知识库ID
+     * @param kbIds    知识库ID列表
      * @param request 问答请求
      * @return 问答响应
      */
-    QaResponse chat(Long kbId, QaRequest request);
+    QaResponse chat(Long[] kbIds, QaRequest request);
 
     /**
      * 知识库流式问答
      *
-     * @param kbId    知识库ID
+     * @param kbIds    知识库ID列表
      * @param request 问答请求
      * @return SSE发射器
      */
-    SseEmitter streamChat(Long kbId, QaRequest request);
+    SseEmitter streamChat(Long[] kbIds, QaRequest request);
 
     /**
      * 通用问答

@@ -1,5 +1,6 @@
 package com.dxdou.snowai.controller;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.dxdou.snowai.common.R;
 import com.dxdou.snowai.domain.entity.LlmConfig;
 import com.dxdou.snowai.service.LlmConfigService;
@@ -27,7 +28,7 @@ public class LlmConfigController {
     @Operation(summary = "获取所有大模型配置")
     @GetMapping("/list")
     public R<List<LlmConfig>> list() {
-        return R.ok(llmConfigService.list());
+        return R.ok(llmConfigService.list(Wrappers.lambdaQuery(LlmConfig.class).orderByDesc(LlmConfig::getCreateTime)));
     }
 
     @Operation(summary = "获取指定大模型配置")
