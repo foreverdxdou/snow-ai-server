@@ -2,8 +2,6 @@ package com.dxdou.snowai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.json.JSONObject;
-import jakarta.servlet.http.HttpServletResponse;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -14,37 +12,40 @@ import com.dxdou.snowai.domain.entity.LlmConfig;
 import com.dxdou.snowai.domain.entity.LlmTokenUsage;
 import com.dxdou.snowai.domain.model.QaRequest;
 import com.dxdou.snowai.domain.model.QaResponse;
-import com.dxdou.snowai.domain.vo.KbChatHistoryVO;
 import com.dxdou.snowai.mapper.KbChatHistoryMapper;
 import com.dxdou.snowai.mapper.LlmTokenUsageMapper;
+import com.dxdou.snowai.service.AuthService;
 import com.dxdou.snowai.service.KbQaService;
 import com.dxdou.snowai.service.KbSearchService;
 import com.dxdou.snowai.service.LlmConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.executor.Executor;
-import org.springframework.context.annotation.Bean;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -58,11 +59,13 @@ import java.util.stream.Collectors;
 public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHistory> implements KbQaService {
 
     private final KbChatHistoryMapper chatHistoryMapper;
+    private final AuthService authService;
     private final KbSearchService searchService;
     private final LlmConfigService llmConfigService;
     private final LlmTokenUsageMapper tokenUsageMapper;
     private final RestTemplate restTemplate;
     private final WebClient webClient;
+    private final Executor asyncExecutor;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -204,34 +207,185 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     }
 
     @Override
-    public SseEmitter streamGeneralChat(QaRequest request, HttpServletResponse response) {
-        SseEmitter emitter = new SseEmitter(180000L);
-
+    public SseEmitter streamGeneralChat(QaRequest request) {
         long startTime = System.currentTimeMillis();
+        // 创建 SSE 发射器，设置超时时间为30分钟
+        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
 
-        try {
-            // 1. 获取默认的AI模型配置
-            LlmConfig model = getDefaultModel();
+        // 使用 AtomicBoolean 来控制流的状态
+        AtomicBoolean isCompleted = new AtomicBoolean(false);
 
-            // 2. 构建提示词
-            String prompt = buildGeneralPrompt(request.getQuestion());
+        // 保存当前的安全上下文
+        SecurityContext context = SecurityContextHolder.getContext();
+        StringBuilder answer = new StringBuilder();
+        // 设置完成回调
+        emitter.onCompletion(() -> {
+            isCompleted.set(true);
+            SecurityContextHolder.setContext(context);
 
-            log.info("sessionId " + request.getSessionId());
-            // 3. 流式调用AI模型
-            StringBuilder answer = new StringBuilder();
-            streamCallAiModel(model, prompt, response, emitter, chunk -> {
-               answer.append(chunk);
-                try {
-                    emitter.send(chunk);
-                    response.getOutputStream().flush();
-                } catch (Exception e) {
-                    emitter.completeWithError(e);
+            log.info("SSE connection completed");
+            if (StringUtils.isNotBlank(answer.toString())) {
+                // 5. 保存对话历史
+                long processTime = System.currentTimeMillis() - startTime;
+                saveChatHistory(request.getSessionId(), null, request.getQuestion(), answer.toString(), null,
+                        processTime);
+            }
+        });
+
+        // 设置超时回调
+        emitter.onTimeout(() -> {
+            isCompleted.set(true);
+            emitter.complete();
+        });
+
+        // 设置错误回调
+        emitter.onError(throwable -> {
+            log.error("SSE error occurred", throwable);
+            isCompleted.set(true);
+            try {
+                emitter.send(SseEmitter.event()
+                        .id(String.valueOf(System.currentTimeMillis()))
+                        .name("error")
+                        .data("Stream error occurred")
+                        .build());
+                emitter.complete();
+            } catch (IOException e) {
+                log.error("Error sending error event", e);
+            }
+        });
+
+        // 异步处理流式响应
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 1. 获取默认的AI模型配置
+                LlmConfig model = getDefaultModel();
+
+                // 2. 构建提示词
+                String prompt = buildGeneralPrompt(request.getQuestion());
+
+                // 3. 构建请求体
+                Map<String, Object> requestBody = buildRequestBody(model, prompt);
+
+                // 4. 获取请求头
+                Map<String, String> headers = getHeaders(model);
+
+                // 5. 发送请求并处理流式响应
+                webClient.post()
+                        .uri(model.getApiUrl())
+                        .headers(h -> {
+                            headers.forEach(h::add);
+                            h.setCacheControl("no-cache");
+                            h.setPragma("no-cache");
+                            h.set("Accept-Encoding", "identity"); // 禁止 WebClient 请求压缩
+                        })
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToFlux(String.class)
+                        .doOnNext(chunk -> {
+                            if (isCompleted.get()) {
+                                return;
+                            }
+
+                            try {
+                                if ("[DONE]".equals(chunk)) {
+                                    if (!isCompleted.get()) {
+                                        emitter.send(SseEmitter.event()
+                                                .id(String.valueOf(System.currentTimeMillis()))
+                                                .name("done")
+                                                .data("[DONE]")
+                                                .build());
+                                    }
+                                    return;
+                                }
+
+                                Map<String, Object> chunkResponse = parseJson(chunk);
+                                if (chunkResponse != null && chunkResponse.containsKey("choices")) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse.get("choices");
+                                    if (!choices.isEmpty()) {
+                                        Map<String, Object> choice = choices.get(0);
+                                        if (choice.containsKey("delta") && choice.get("delta") instanceof Map) {
+                                            @SuppressWarnings("unchecked")
+                                            Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
+                                            if (delta.containsKey("content")) {
+                                                String content = (String) delta.get("content");
+                                                if (StringUtils.isNotBlank(content)) {
+                                                    log.info("Received chunk: {}", content);
+                                                }
+                                                answer.append(content);
+                                                if (!isCompleted.get()) {
+                                                    log.info("Sending chunk: {}", content);
+                                                    emitter.send(SseEmitter.event()
+                                                            .id(String.valueOf(System.currentTimeMillis()))
+                                                            .name("message")
+                                                            .data(content)
+                                                            .build());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                log.error("Error processing chunk", e);
+                                if (!isCompleted.get()) {
+                                    try {
+                                        emitter.send(SseEmitter.event()
+                                                .id(String.valueOf(System.currentTimeMillis()))
+                                                .name("error")
+                                                .data("Error processing chunk: " + e.getMessage())
+                                                .build());
+                                    } catch (IOException ex) {
+                                        log.error("Error sending error event", ex);
+                                    }
+                                }
+                            }
+                        })
+                        .doOnComplete(() -> {
+                            if (!isCompleted.get()) {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .id(String.valueOf(System.currentTimeMillis()))
+                                            .name("complete")
+                                            .data("Stream completed")
+                                            .build());
+                                    emitter.complete();
+                                } catch (IOException e) {
+                                    log.error("Error completing stream", e);
+                                }
+                            }
+                        })
+                        .doOnError(error -> {
+                            log.error("Stream error", error);
+                            if (!isCompleted.get()) {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .id(String.valueOf(System.currentTimeMillis()))
+                                            .name("error")
+                                            .data("Stream error: " + error.getMessage())
+                                            .build());
+                                    emitter.complete();
+                                } catch (IOException e) {
+                                    log.error("Error sending error event", e);
+                                }
+                            }
+                        })
+                        .subscribe();
+            } catch (Exception e) {
+                log.error("Error in stream processing", e);
+                if (!isCompleted.get()) {
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .id(String.valueOf(System.currentTimeMillis()))
+                                .name("error")
+                                .data("Stream processing error: " + e.getMessage())
+                                .build());
+                        emitter.complete();
+                    } catch (IOException ex) {
+                        log.error("Error sending error event", ex);
+                    }
                 }
-            });
-
-        } catch (Exception e) {
-            emitter.completeWithError(e);
-        }
+            }
+        }, asyncExecutor);
 
         return emitter;
     }
@@ -261,6 +415,39 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     @Transactional(rollbackFor = Exception.class)
     public void clearChatHistory(Long kbId) {
         chatHistoryMapper.deleteByKnowledgeBaseId(kbId);
+    }
+
+    @Override
+    public Flux<ServerSentEvent<String>> streamChatGPTReply(String message) {
+        // 1. 获取默认的AI模型配置
+        LlmConfig model = getDefaultModel();
+
+        // 2. 构建提示词
+        String prompt = buildGeneralPrompt("人生的意义");
+
+        // 3. 构建请求体
+        Map<String, Object> requestBody = buildRequestBody(model, prompt);
+
+        // 4. 获取请求头
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + model.getApiKey());
+        // 使用 WebClient 异步调用外部 API
+        return webClient.post()
+                .uri(model.getApiUrl())
+                .headers(h -> {
+                    h.addAll(headers);
+                    // 添加必要的响应头
+                    h.setCacheControl("no-cache");
+                    h.setPragma("no-cache");
+                })
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToFlux(String.class) // 假设 API 返回 String 类型数据
+                .map(data -> ServerSentEvent.<String>builder()
+                        .data(data) // 将 API 响应数据包装到 SSE 事件中
+                        .build())
+                .delayElements(Duration.ofMillis(100));
     }
 
     /**
@@ -375,7 +562,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param callback 回调函数
      */
     private void streamCallAiModel(LlmConfig model, String prompt, HttpServletResponse servletResponse, SseEmitter emitter,
-            java.util.function.Consumer<String> callback) {
+                                   java.util.function.Consumer<String> callback) {
         servletResponse.setContentType("text/event-stream");
         servletResponse.setHeader("Cache-Control", "no-cache");
         servletResponse.setHeader("content-encoding", "br");
@@ -388,8 +575,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         // 2. 构建请求体
         JSONObject requestBody = new JSONObject();
         requestBody.put("model", model.getModelName());
-        requestBody.put("messages", new JSONObject[] { new JSONObject().put("role", "system").put("content", ""),
-                new JSONObject().put("role", "user").put("content", prompt) });
+        requestBody.put("messages", new JSONObject[]{new JSONObject().put("role", "system").put("content", ""),
+                new JSONObject().put("role", "user").put("content", prompt)});
         requestBody.put("temperature", 0.7);
         requestBody.put("max_tokens", 2000);
         requestBody.put("stream", true);
@@ -438,15 +625,6 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                     if (delta.containsKey("content")) {
                                         String content = (String) delta.get("content");
                                         log.info("streamCallAiModel content: " + content);
-                                        // // 为每个事件添加唯一ID和事件名称
-                                        // emitter.send(SseEmitter.event()
-                                        //         .id(String.valueOf(System.currentTimeMillis()))
-                                        //         .name("message")
-                                        //         .data(content)
-                                        //         .build());
-                                        // // 强制刷新数据
-                                        // emitter.send(SseEmitter.event().comment("").build());
-                                        // servletResponse.getOutputStream().flush();
                                         callback.accept(content);
                                     }
                                 }
@@ -511,17 +689,40 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param processTime 处理时间
      */
     private void saveChatHistory(String sessionId, Long[] kbIds, String question, String answer, Long modelId,
-            long processTime) {
+                                 long processTime) {
         KbChatHistory history = new KbChatHistory();
         history.setSessionId(sessionId);
-        history.setKbIds(CollUtil.join(Arrays.asList(kbIds), ","));
+        history.setKbIds(kbIds != null && kbIds.length > 0 ? CollUtil.join(Arrays.asList(kbIds), ",") : null);
         history.setQuestion(question);
         history.setAnswer(answer);
         history.setTokensUsed(100); // 从AI模型响应中获取实际使用的token数
         history.setProcessTime(processTime);
         history.setCreateTime(LocalDateTime.now());
         history.setUpdateTime(LocalDateTime.now());
+        Long userId = authService.getCurrentUser().getId();
+        history.setUserId(userId);
+        try {
+            chatHistoryMapper.insert(history);
+        } catch (Exception e) {
+            log.error("保存对话历史失败", e);
+        }
+    }
 
-        chatHistoryMapper.insert(history);
+    private Map<String, String> getHeaders(LlmConfig model) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + model.getApiKey());
+        headers.put("Content-Type", "application/json");
+        return headers;
+    }
+
+    private Map<String, Object> buildRequestBody(LlmConfig model, String prompt) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", model.getModelName());
+        requestBody.put("messages", new JSONObject[]{new JSONObject().put("role", "system").put("content", ""),
+                new JSONObject().put("role", "user").put("content", prompt)});
+        requestBody.put("temperature", 0.7);
+        requestBody.put("max_tokens", 2000);
+        requestBody.put("stream", true);
+        return requestBody;
     }
 }

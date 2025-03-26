@@ -4,10 +4,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dxdou.snowai.domain.entity.KbChatHistory;
 import com.dxdou.snowai.domain.model.QaRequest;
 import com.dxdou.snowai.domain.model.QaResponse;
-
 import jakarta.servlet.http.HttpServletResponse;
-
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
 
 /**
  * 知识库问答服务接口
@@ -50,7 +50,7 @@ public interface KbQaService {
      * @param response 
      * @return SSE发射器
      */
-    SseEmitter streamGeneralChat(QaRequest request, HttpServletResponse response);
+    SseEmitter streamGeneralChat(QaRequest request);
 
     /**
      * 获取对话历史
@@ -80,4 +80,6 @@ public interface KbQaService {
      * @param kbId 知识库ID
      */
     void clearChatHistory(Long kbId);
+
+    Flux<ServerSentEvent<String>> streamChatGPTReply(String message);
 }
