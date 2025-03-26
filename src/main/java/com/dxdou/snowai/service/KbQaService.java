@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dxdou.snowai.domain.entity.KbChatHistory;
 import com.dxdou.snowai.domain.model.QaRequest;
 import com.dxdou.snowai.domain.model.QaResponse;
+
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
@@ -27,9 +30,10 @@ public interface KbQaService {
      *
      * @param kbIds    知识库ID列表
      * @param request 问答请求
+     * @param response 
      * @return SSE发射器
      */
-    SseEmitter streamChat(Long[] kbIds, QaRequest request);
+    SseEmitter streamChat(Long[] kbIds, QaRequest request, HttpServletResponse response);
 
     /**
      * 通用问答
@@ -43,9 +47,10 @@ public interface KbQaService {
      * 通用流式问答
      *
      * @param request 问答请求
+     * @param response 
      * @return SSE发射器
      */
-    SseEmitter streamGeneralChat(QaRequest request);
+    SseEmitter streamGeneralChat(QaRequest request, HttpServletResponse response);
 
     /**
      * 获取对话历史

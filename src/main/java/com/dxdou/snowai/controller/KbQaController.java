@@ -9,6 +9,7 @@ import com.dxdou.snowai.service.KbQaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -38,8 +39,8 @@ public class KbQaController {
     @PostMapping("/chat/stream")
     public SseEmitter streamChat(
             @Parameter(description = "知识库ID列表") @RequestParam(required = false) Long[] kbIds,
-            @RequestBody QaRequest request) {
-        return qaService.streamChat(kbIds, request);
+            @RequestBody QaRequest request, HttpServletResponse response) {
+        return qaService.streamChat(kbIds, request,response);
     }
 
     @Operation(summary = "通用问答")
@@ -50,8 +51,8 @@ public class KbQaController {
 
     @Operation(summary = "通用流式问答")
     @PostMapping("/general/stream")
-    public SseEmitter streamGeneralChat(@RequestBody QaRequest request) {
-        return qaService.streamGeneralChat(request);
+    public SseEmitter streamGeneralChat(@RequestBody QaRequest request, HttpServletResponse response) {
+        return qaService.streamGeneralChat(request, response);
     }
 
     @Operation(summary = "获取对话历史")

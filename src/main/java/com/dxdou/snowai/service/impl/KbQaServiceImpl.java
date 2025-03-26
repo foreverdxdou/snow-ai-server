@@ -2,6 +2,8 @@ package com.dxdou.snowai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.json.JSONObject;
+import jakarta.servlet.http.HttpServletResponse;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -63,7 +65,6 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public QaResponse chat(Long[] kbIds, QaRequest request) {
@@ -73,13 +74,15 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             LlmConfig model = getDefaultModel();
 
             // 2. 检索相关文档
-            List<KbDocument> relevantDocs = searchService.semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream().map(vo -> {
-                KbDocument doc = new KbDocument();
-                doc.setId(vo.getId());
-                doc.setTitle(vo.getTitle());
-                doc.setContent(vo.getContent());
-                return doc;
-            }).collect(Collectors.toList());
+            List<KbDocument> relevantDocs = searchService
+                    .semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream()
+                    .map(vo -> {
+                        KbDocument doc = new KbDocument();
+                        doc.setId(vo.getId());
+                        doc.setTitle(vo.getTitle());
+                        doc.setContent(vo.getContent());
+                        return doc;
+                    }).collect(Collectors.toList());
 
             // 3. 构建提示词
             String prompt = buildPrompt(request.getQuestion(), relevantDocs);
@@ -111,8 +114,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     }
 
     @Override
-//    @Transactional(rollbackFor = Exception.class)
-    public SseEmitter streamChat(Long[] kbIds, QaRequest request) {
+    // @Transactional(rollbackFor = Exception.class)
+    public SseEmitter streamChat(Long[] kbIds, QaRequest request, HttpServletResponse response) {
         SseEmitter emitter = new SseEmitter();
         long startTime = System.currentTimeMillis();
 
@@ -121,13 +124,15 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             LlmConfig model = getDefaultModel();
 
             // 2. 检索相关文档
-            List<KbDocument> relevantDocs = searchService.semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream().map(vo -> {
-                KbDocument doc = new KbDocument();
-                doc.setId(vo.getId());
-                doc.setTitle(vo.getTitle());
-                doc.setContent(vo.getContent());
-                return doc;
-            }).collect(Collectors.toList());
+            List<KbDocument> relevantDocs = searchService
+                    .semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream()
+                    .map(vo -> {
+                        KbDocument doc = new KbDocument();
+                        doc.setId(vo.getId());
+                        doc.setTitle(vo.getTitle());
+                        doc.setContent(vo.getContent());
+                        return doc;
+                    }).collect(Collectors.toList());
 
             // 3. 构建提示词
             String prompt = buildPrompt(request.getQuestion(), relevantDocs);
@@ -135,7 +140,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             // 4. 流式调用AI模型
             StringBuilder answer = new StringBuilder();
             log.info("sessionId " + request.getSessionId());
-            streamCallAiModel(model, prompt,emitter, chunk -> {
+            streamCallAiModel(model, prompt, response, emitter, chunk -> {
                 answer.append(chunk);
                 try {
                     emitter.send(chunk);
@@ -146,7 +151,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
             // 5. 保存对话历史
             long processTime = System.currentTimeMillis() - startTime;
-            saveChatHistory(request.getSessionId(), kbIds, request.getQuestion(), answer.toString(), model.getId(), processTime);
+            saveChatHistory(request.getSessionId(), kbIds, request.getQuestion(), answer.toString(), model.getId(),
+                    processTime);
 
             // 6. 发送完成信号
             emitter.send("DONE");
@@ -198,8 +204,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     }
 
     @Override
-    public SseEmitter streamGeneralChat(QaRequest request) {
-        SseEmitter emitter = new SseEmitter();
+    public SseEmitter streamGeneralChat(QaRequest request, HttpServletResponse response) {
+        SseEmitter emitter = new SseEmitter(180000L);
 
         long startTime = System.currentTimeMillis();
 
@@ -213,10 +219,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             log.info("sessionId " + request.getSessionId());
             // 3. 流式调用AI模型
             StringBuilder answer = new StringBuilder();
-            streamCallAiModel(model, prompt, emitter, chunk -> {
-                answer.append(chunk);
+            streamCallAiModel(model, prompt, response, emitter, chunk -> {
+               answer.append(chunk);
                 try {
                     emitter.send(chunk);
+                    response.getOutputStream().flush();
                 } catch (Exception e) {
                     emitter.completeWithError(e);
                 }
@@ -339,14 +346,16 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         }
 
         // 5. 获取回答和token使用情况
-        @SuppressWarnings("unchecked") List<Map<String, Object>> choicesList = (List<Map<String, Object>>) response.get("choices");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> choicesList = (List<Map<String, Object>>) response.get("choices");
         if (choicesList == null || choicesList.isEmpty()) {
             throw new BusinessException("AI模型响应格式错误");
         }
         Map<String, Object> choice = choicesList.get(0);
         String answer = (String) choice.get("text");
 
-        @SuppressWarnings("unchecked") Map<String, Object> usage = (Map<String, Object>) response.get("usage");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> usage = (Map<String, Object>) response.get("usage");
         if (usage == null) {
             throw new BusinessException("AI模型响应中缺少token使用信息");
         }
@@ -365,7 +374,12 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param prompt   提示词
      * @param callback 回调函数
      */
-    private void streamCallAiModel(LlmConfig model, String prompt, SseEmitter emitter, java.util.function.Consumer<String> callback) {
+    private void streamCallAiModel(LlmConfig model, String prompt, HttpServletResponse servletResponse, SseEmitter emitter,
+            java.util.function.Consumer<String> callback) {
+        servletResponse.setContentType("text/event-stream");
+        servletResponse.setHeader("Cache-Control", "no-cache");
+        servletResponse.setHeader("content-encoding", "br");
+        servletResponse.setCharacterEncoding("UTF-8");
         // 1. 构建请求头
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -374,7 +388,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         // 2. 构建请求体
         JSONObject requestBody = new JSONObject();
         requestBody.put("model", model.getModelName());
-        requestBody.put("messages", new JSONObject[]{new JSONObject().put("role", "system").put("content", ""), new JSONObject().put("role", "user").put("content", prompt)});
+        requestBody.put("messages", new JSONObject[] { new JSONObject().put("role", "system").put("content", ""),
+                new JSONObject().put("role", "user").put("content", prompt) });
         requestBody.put("temperature", 0.7);
         requestBody.put("max_tokens", 2000);
         requestBody.put("stream", true);
@@ -391,38 +406,69 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
         // 3. 发送请求并处理流式响应
         webClient.post().uri(model.getApiUrl())
-                .headers(h -> h.addAll(headers)).bodyValue(requestBody)
+                .headers(h -> {
+                    h.addAll(headers);
+                    // 添加必要的响应头
+                    h.setCacheControl("no-cache");
+                    h.setPragma("no-cache");
+                })
+                .bodyValue(requestBody)
                 .retrieve()
                 .bodyToFlux(String.class)
-                .subscribe(chunk -> {
+                .doOnNext(chunk -> {
                     try {
-                        // 解析响应数据
                         if ("[DONE]".equals(chunk)) {
-                            // 4. 发送完成信号
-                            emitter.send("[DONE]");
+                            emitter.send(SseEmitter.event()
+                                    .id(String.valueOf(System.currentTimeMillis()))
+                                    .name("done")
+                                    .data("[DONE]")
+                                    .build());
                             return;
                         }
-                        // 解析JSON数据
+
                         Map<String, Object> response = parseJson(chunk);
                         if (response != null && response.containsKey("choices")) {
-                            @SuppressWarnings("unchecked") List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
                             if (!choices.isEmpty()) {
                                 Map<String, Object> choice = choices.get(0);
                                 if (choice.containsKey("delta") && choice.get("delta") instanceof Map) {
-                                    @SuppressWarnings("unchecked") Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
                                     if (delta.containsKey("content")) {
                                         String content = (String) delta.get("content");
                                         log.info("streamCallAiModel content: " + content);
-                                        emitter.send(content);
+                                        // // 为每个事件添加唯一ID和事件名称
+                                        // emitter.send(SseEmitter.event()
+                                        //         .id(String.valueOf(System.currentTimeMillis()))
+                                        //         .name("message")
+                                        //         .data(content)
+                                        //         .build());
+                                        // // 强制刷新数据
+                                        // emitter.send(SseEmitter.event().comment("").build());
+                                        // servletResponse.getOutputStream().flush();
                                         callback.accept(content);
                                     }
                                 }
                             }
                         }
                     } catch (Exception e) {
-                        throw new BusinessException("处理流式响应失败: " + e.getMessage());
+                        log.error("处理流式响应失败", e);
+                        emitter.completeWithError(e);
                     }
-                },emitter::completeWithError, emitter::complete);
+                })
+                .doOnComplete(() -> {
+                    try {
+                        emitter.complete();
+                    } catch (Exception e) {
+                        log.error("完成流式响应失败", e);
+                    }
+                })
+                .doOnError(error -> {
+                    log.error("流式响应发生错误", error);
+                    emitter.completeWithError(error);
+                })
+                .subscribe();
     }
 
     /**
@@ -464,7 +510,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param modelId     模型ID
      * @param processTime 处理时间
      */
-    private void saveChatHistory(String sessionId, Long[] kbIds, String question, String answer, Long modelId, long processTime) {
+    private void saveChatHistory(String sessionId, Long[] kbIds, String question, String answer, Long modelId,
+            long processTime) {
         KbChatHistory history = new KbChatHistory();
         history.setSessionId(sessionId);
         history.setKbIds(CollUtil.join(Arrays.asList(kbIds), ","));
