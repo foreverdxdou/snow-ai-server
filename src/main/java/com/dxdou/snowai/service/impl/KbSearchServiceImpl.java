@@ -11,15 +11,16 @@ import com.dxdou.snowai.mapper.KbDocumentVectorMapper;
 import com.dxdou.snowai.service.KbSearchService;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.text.similarity.CosineSimilarity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * 知识库智能搜索服务实现类
@@ -189,7 +190,7 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
      * @return 向量表示
      */
     private float[] getQueryVector(String query) {
-        // 使用NLP模型生成查询词的向量表示
+        // 使用NLP模型生成查询词的向量表示 StanfordCoreNLP
         // 这里需要根据实际使用的模型来实现
         return new float[1536];
     }
@@ -203,6 +204,7 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     private float[] generateDocumentVector(String content) {
         // 使用NLP模型生成文档的向量表示
         // 这里需要根据实际使用的模型来实现
+        // 输入文本
         return new float[1536];
     }
 

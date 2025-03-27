@@ -2,14 +2,10 @@ package com.dxdou.snowai.config;
 
 import com.dxdou.snowai.constant.SecurityConstants;
 import com.dxdou.snowai.security.JwtAuthenticationFilter;
-
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -59,22 +55,23 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(corsFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(corsFilter, LogoutFilter.class)
-                .exceptionHandling(ex -> ex
-                        .accessDeniedHandler((request, response, e) -> {
-                            log.error("访问被拒绝: {}", e.getMessage());
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.setCharacterEncoding("UTF-8");
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.getWriter().write("{\"code\":403,\"message\":\"访问被拒绝\"}");
-                        })
-                        .authenticationEntryPoint((request, response, e) -> {
-                            log.error("认证失败: {}", e.getMessage());
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.setCharacterEncoding("UTF-8");
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("{\"code\":401,\"message\":\"认证失败\"}");
-                        })
-                );
+//                .exceptionHandling(ex -> ex
+//                        .accessDeniedHandler((request, response, e) -> {
+//                            log.error("访问被拒绝: {}", e.getMessage());
+//                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+//                            response.setCharacterEncoding("UTF-8");
+//                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+//                            response.getWriter().write("{\"code\":403,\"message\":\"访问被拒绝\"}");
+//                        })
+//                        .authenticationEntryPoint((request, response, e) -> {
+//                            log.error("认证失败: {}", e.getMessage());
+//                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+//                            response.setCharacterEncoding("UTF-8");
+//                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//                            response.getWriter().write("{\"code\":401,\"message\":\"认证失败\"}");
+//                        })
+//                )
+        ;
 
         return http.build();
     }
