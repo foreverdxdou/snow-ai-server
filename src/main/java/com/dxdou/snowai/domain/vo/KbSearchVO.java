@@ -107,4 +107,6 @@ public class KbSearchVO {
      * 更新时间
      */
     private LocalDateTime updateTime;
+
+    private String matchedContent; // 匹配的文档块内容
 }

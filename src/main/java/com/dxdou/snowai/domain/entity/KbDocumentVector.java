@@ -1,8 +1,10 @@
 package com.dxdou.snowai.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.dxdou.snowai.handler.VectorTypeHandler;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -30,6 +32,7 @@ public class KbDocumentVector {
     /**
      * 内容向量
      */
+    @TableField(typeHandler = VectorTypeHandler.class)
     private float[] contentVector;
 
     /**

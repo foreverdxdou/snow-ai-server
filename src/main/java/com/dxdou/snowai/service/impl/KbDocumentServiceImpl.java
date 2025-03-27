@@ -15,20 +15,26 @@ import com.dxdou.snowai.mapper.KbDocumentMapper;
 import com.dxdou.snowai.mapper.KbDocumentTagMapper;
 import com.dxdou.snowai.mapper.KbDocumentVersionMapper;
 import com.dxdou.snowai.service.KbDocumentService;
+import com.dxdou.snowai.service.KbSearchService;
 import com.dxdou.snowai.service.MinioService;
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.hwpf.HWPFDocument;
-import org.apache.poi.hwpf.extractor.WordExtractor;
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.hslf.usermodel.HSLFShape;
+import org.apache.poi.hslf.usermodel.HSLFSlide;
+import org.apache.poi.hslf.usermodel.HSLFSlideShow;
+import org.apache.poi.hslf.usermodel.HSLFTextShape;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.xslf.usermodel.XMLSlideShow;
+import org.apache.poi.xslf.usermodel.XSLFShape;
+import org.apache.poi.xslf.usermodel.XSLFSlide;
+import org.apache.poi.xslf.usermodel.XSLFTextShape;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.apache.poi.xslf.usermodel.XMLSlideShow;
-import org.apache.poi.hslf.usermodel.*;
-import org.apache.poi.xslf.usermodel.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +53,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
     private final KbDocumentVersionMapper documentVersionMapper;
     private final KbDocumentTagMapper documentTagMapper;
     private final MinioService minioService;
+    private final KbSearchService searchService;
 
     @Override
     public IPage<KbDocumentVO> getDocumentPage(Page<KbDocument> page, String title, Long kbId, Long categoryId,
@@ -61,8 +68,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KbDocumentVO uploadDocument(MultipartFile file, String title, Long kbId, Long categoryId,
-            List<Long> tagIds, Long creatorId) {
+    public KbDocumentVO uploadDocument(MultipartFile file, Long kbId, List<Long> tagIds, Long creatorId) {
         // 1. 保存文件到MinIO
         String fileUrl = uploadFileToMinio(file);
 
@@ -76,7 +82,6 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         document.setFileType(file.getContentType());
         document.setFileSize(file.getSize());
         document.setFileUrl(fileUrl);
-        document.setCategoryId(categoryId);
         document.setKbId(kbId);
         document.setVersion(1);
         document.setStatus(1);
@@ -91,12 +96,17 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
             saveDocumentTags(document.getId(), tagIds);
         }
 
+        // 6. 更新文档向量
+        searchService.updateDocumentVector(document.getId());
+
+        // 7. 保存到搜索引擎
+
         return getDocumentById(document.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KbDocumentVO updateDocument(Long id, String title, String content, Long categoryId, List<Long> tagIds) {
+    public KbDocumentVO updateDocument(Long id, String title, String content, List<Long> tagIds) {
         // 1. 查询原文档
         KbDocument document = documentMapper.selectById(id);
         if (document == null) {
@@ -106,7 +116,6 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         // 2. 更新文档信息
         document.setTitle(title);
         document.setContent(content);
-        document.setCategoryId(categoryId);
         document.setVersion(document.getVersion() + 1);
         documentMapper.updateById(document);
 

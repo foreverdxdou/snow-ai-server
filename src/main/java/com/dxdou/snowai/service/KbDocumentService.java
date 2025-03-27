@@ -44,14 +44,12 @@ public interface KbDocumentService extends IService<KbDocument> {
      * 上传文档
      *
      * @param file       文件
-     * @param title      文档标题
      * @param kbId       知识库ID
-     * @param categoryId 分类ID
      * @param tagIds     标签ID列表
      * @param creatorId
      * @return 文档信息
      */
-    KbDocumentVO uploadDocument(MultipartFile file, String title, Long kbId, Long categoryId, List<Long> tagIds, Long creatorId);
+    KbDocumentVO uploadDocument(MultipartFile file, Long kbId, List<Long> tagIds, Long creatorId);
 
     /**
      * 更新文档
@@ -59,11 +57,10 @@ public interface KbDocumentService extends IService<KbDocument> {
      * @param id         文档ID
      * @param title      文档标题
      * @param content    文档内容
-     * @param categoryId 分类ID
      * @param tagIds     标签ID列表
      * @return 文档信息
      */
-    KbDocumentVO updateDocument(Long id, String title, String content, Long categoryId, List<Long> tagIds);
+    KbDocumentVO updateDocument(Long id, String title, String content, List<Long> tagIds);
 
     /**
      * 删除文档

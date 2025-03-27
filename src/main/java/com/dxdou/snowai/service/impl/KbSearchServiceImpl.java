@@ -9,17 +9,19 @@ import com.dxdou.snowai.domain.vo.KbSearchVO;
 import com.dxdou.snowai.mapper.KbDocumentMapper;
 import com.dxdou.snowai.mapper.KbDocumentVectorMapper;
 import com.dxdou.snowai.service.KbSearchService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -29,42 +31,61 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocument> implements KbSearchService {
 
     private final KbDocumentMapper documentMapper;
     private final KbDocumentVectorMapper documentVectorMapper;
     private final StanfordCoreNLP nlpPipeline;
+    private final ObjectMapper objectMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private static final String IDF_CACHE_PREFIX = "kb:idf:";
+    private static final int IDF_CACHE_EXPIRE = 24 * 60 * 60; // 24小时
+    private static final String QUERY_VECTOR_CACHE_PREFIX = "kb:query:vector:";
+    private static final int QUERY_VECTOR_CACHE_EXPIRE = 60 * 60; // 1小时
+    private static final int CHUNK_SIZE = 500; // 每个文档块的最大字符数
+    private static final int CHUNK_OVERLAP = 100; // 块之间的重叠字符数
 
     @Override
     public Page<KbSearchVO> semanticSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> tagIds) {
         // 1. 获取查询词的向量表示
         float[] queryVector = getQueryVector(query);
 
-        // 2. 从向量数据库中检索相似文档
+        // 2. 从向量数据库中检索相似文档块
         List<KbDocumentVector> similarVectors = documentVectorMapper.findSimilarVectors(queryVector, kbIds,
-                page.getSize());
+                page.getSize() * 3); // 获取更多结果以便后续处理
 
-        // 3. 获取文档ID列表
-        List<Long> docIds = similarVectors.stream()
-                .map(KbDocumentVector::getDocumentId)
-                .collect(Collectors.toList());
+        // 3. 按文档ID分组，选择最相似的块
+        Map<Long, KbDocumentVector> bestChunks = similarVectors.stream()
+                .collect(Collectors.groupingBy(
+                        KbDocumentVector::getDocumentId,
+                        Collectors.collectingAndThen(
+                                Collectors.toList(),
+                                chunks -> chunks.stream()
+                                        .max(Comparator.comparingDouble(KbDocumentVector::getSimilarity))
+                                        .orElse(null))));
 
         // 4. 获取文档详情
-        List<KbDocument> documents = documentMapper.selectBatchIds(docIds);
+        List<KbDocument> documents = documentMapper.selectBatchIds(bestChunks.keySet());
 
-        // 5. 转换为VO对象
+        // 5. 转换为VO对象并设置相关块内容
         List<KbSearchVO> searchResults = documents.stream()
-                .map(this::convertToSearchVO)
+                .map(doc -> {
+                    KbSearchVO vo = convertToSearchVO(doc);
+                    KbDocumentVector bestChunk = bestChunks.get(doc.getId());
+                    if (bestChunk != null) {
+                        vo.setSimilarity(bestChunk.getSimilarity());
+                        vo.setMatchedContent(bestChunk.getChunkContent()); // 假设KbSearchVO有这个字段
+                    }
+                    return vo;
+                })
+                .sorted(Comparator.comparingDouble(KbSearchVO::getSimilarity).reversed())
+                .limit(page.getSize())
                 .collect(Collectors.toList());
 
-        // 6. 设置相似度分数
-        for (int i = 0; i < searchResults.size(); i++) {
-            searchResults.get(i).setSimilarity(similarVectors.get(i).getSimilarity());
-        }
-
-        // 7. 构建分页结果
+        // 6. 构建分页结果
         page.setRecords(searchResults);
-        page.setTotal(documents.size());
+        page.setTotal(searchResults.size());
 
         return page;
     }
@@ -170,17 +191,76 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
             return;
         }
 
-        // 2. 生成文档向量
-        float[] vector = generateDocumentVector(document.getContent());
+        // 2. 删除文档现有的向量
+        documentVectorMapper.deleteByDocumentId(docId);
 
-        // 3. 更新向量数据库
-        KbDocumentVector documentVector = new KbDocumentVector();
-        documentVector.setDocumentId(docId);
-        documentVector.setContentVector(vector);
-        documentVector.setChunkIndex(0);
-        documentVector.setChunkContent(document.getContent());
+        // 3. 将文档内容分块
+        List<DocumentChunk> chunks = splitDocumentIntoChunks(document.getContent());
 
-        documentVectorMapper.insertOrUpdate(documentVector);
+        // 4. 为每个块生成向量并保存
+        for (DocumentChunk chunk : chunks) {
+            float[] vector = generateDocumentVector(chunk.content);
+
+            KbDocumentVector documentVector = new KbDocumentVector();
+            documentVector.setDocumentId(docId);
+            documentVector.setContentVector(vector);
+            documentVector.setChunkIndex(chunk.index);
+            documentVector.setChunkContent(chunk.content);
+
+            documentVectorMapper.insert(documentVector);
+        }
+    }
+
+    private static class DocumentChunk {
+        int index;
+        String content;
+
+        DocumentChunk(int index, String content) {
+            this.index = index;
+            this.content = content;
+        }
+    }
+
+    private List<DocumentChunk> splitDocumentIntoChunks(String content) {
+        List<DocumentChunk> chunks = new ArrayList<>();
+
+        // 1. 首先按自然段落分割
+        String[] paragraphs = content.split("\n\n");
+
+        StringBuilder currentChunk = new StringBuilder();
+        int currentIndex = 0;
+
+        for (String paragraph : paragraphs) {
+            // 如果当前块加上新段落超过了块大小
+            if (currentChunk.length() + paragraph.length() > CHUNK_SIZE) {
+                // 保存当前块
+                if (currentChunk.length() > 0) {
+                    chunks.add(new DocumentChunk(currentIndex++, currentChunk.toString().trim()));
+
+                    // 保留最后一部分作为重叠
+                    if (currentChunk.length() > CHUNK_OVERLAP) {
+                        String overlap = currentChunk.substring(
+                                Math.max(0, currentChunk.length() - CHUNK_OVERLAP));
+                        currentChunk = new StringBuilder(overlap);
+                    } else {
+                        currentChunk = new StringBuilder();
+                    }
+                }
+            }
+
+            // 添加新段落
+            if (currentChunk.length() > 0) {
+                currentChunk.append("\n\n");
+            }
+            currentChunk.append(paragraph);
+        }
+
+        // 添加最后一个块
+        if (currentChunk.length() > 0) {
+            chunks.add(new DocumentChunk(currentIndex, currentChunk.toString().trim()));
+        }
+
+        return chunks;
     }
 
     /**
@@ -190,22 +270,163 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
      * @return 向量表示
      */
     private float[] getQueryVector(String query) {
-        // 使用NLP模型生成查询词的向量表示 StanfordCoreNLP
-        // 这里需要根据实际使用的模型来实现
-        return new float[1536];
+        try {
+            // 检查缓存
+            String cacheKey = QUERY_VECTOR_CACHE_PREFIX + query;
+            Object cachedVector = redisTemplate.opsForValue().get(cacheKey);
+            if (cachedVector != null) {
+                return objectMapper.convertValue(cachedVector, float[].class);
+            }
+
+            // 生成向量的现有实现...
+            float[] vector = generateDocumentVector(query);
+
+            // 缓存结果
+            redisTemplate.opsForValue().set(cacheKey, vector, QUERY_VECTOR_CACHE_EXPIRE, TimeUnit.SECONDS);
+
+            return vector;
+        } catch (Exception e) {
+            log.error("获取查询向量失败，query: {}", query, e);
+            return new float[1536];
+        }
     }
 
-    /**
-     * 生成文档向量
-     *
-     * @param content 文档内容
-     * @return 向量表示
-     */
-    private float[] generateDocumentVector(String content) {
-        // 使用NLP模型生成文档的向量表示
-        // 这里需要根据实际使用的模型来实现
-        // 输入文本
-        return new float[1536];
+    private float[] generateDocumentVector(String text) {
+        if (org.apache.commons.lang3.StringUtils.isBlank(text)) {
+            return new float[1536];
+        }
+
+        try {
+            // 创建注释对象
+            edu.stanford.nlp.pipeline.CoreDocument document = new edu.stanford.nlp.pipeline.CoreDocument(text);
+
+            // 使用 nlpPipeline 处理文档
+            nlpPipeline.annotate(document);
+
+            // 获取所有词元（lemmas）
+            List<String> lemmas = new ArrayList<>();
+            for (edu.stanford.nlp.pipeline.CoreSentence sentence : document.sentences()) {
+                lemmas.addAll(sentence.lemmas());
+            }
+
+            // 使用 TF-IDF 计算特征向量
+            float[] vector = new float[1536];
+            Map<String, Integer> termFrequency = new HashMap<>();
+
+            // 计算词频
+            for (String lemma : lemmas) {
+                termFrequency.merge(lemma, 1, Integer::sum);
+            }
+
+            // 计算 TF-IDF 值并填充向量
+            int vectorIndex = 0;
+            for (Map.Entry<String, Integer> entry : termFrequency.entrySet()) {
+                if (vectorIndex >= 1536)
+                    break;
+
+                String term = entry.getKey();
+                int freq = entry.getValue();
+
+                // 计算 TF-IDF
+                float tf = (float) freq / lemmas.size();
+                float idf = calculateIDF(term);
+                vector[vectorIndex++] = tf * idf;
+            }
+
+            // 向量归一化
+            float magnitude = 0;
+            for (float v : vector) {
+                magnitude += v * v;
+            }
+            magnitude = (float) Math.sqrt(magnitude);
+
+            if (magnitude > 0) {
+                for (int i = 0; i < vector.length; i++) {
+                    vector[i] = vector[i] / magnitude;
+                }
+            }
+
+            return vector;
+
+        } catch (Exception e) {
+            log.error("生成查询向量失败", e);
+            return new float[1536];
+        }
+    }
+
+    private float calculateIDF(String term) {
+        try {
+            // 1. 先从缓存中获取IDF值
+            String cacheKey = IDF_CACHE_PREFIX + term;
+            Object cachedIdf = redisTemplate.opsForValue().get(cacheKey);
+            if (cachedIdf != null) {
+                return Float.parseFloat(cachedIdf.toString());
+            }
+
+            // 2. 获取总文档数
+            long totalDocuments = documentMapper.selectCount(null);
+            if (totalDocuments == 0) {
+                return 1.0f;
+            }
+
+            // 3. 获取包含该词的文档数
+            LambdaQueryWrapper<KbDocument> wrapper = new LambdaQueryWrapper<>();
+            wrapper.like(KbDocument::getContent, term);
+            long documentsWithTerm = documentMapper.selectCount(wrapper);
+
+            // 4. 计算IDF值
+            // 使用平滑处理，避免除以零的情况
+            float idf = (float) Math.log10((double) totalDocuments / (documentsWithTerm + 1));
+
+            // 5. 缓存计算结果
+            redisTemplate.opsForValue().set(cacheKey, idf, IDF_CACHE_EXPIRE, TimeUnit.SECONDS);
+
+            return idf;
+        } catch (Exception e) {
+            log.error("计算IDF值失败，term: {}", term, e);
+            return 1.0f; // 发生错误时返回默认值
+        }
+    }
+
+    // 批量更新IDF缓存的方法
+    @Scheduled(cron = "0 0 3 * * ?") // 每天凌晨3点执行
+    public void updateIDFCache() {
+        try {
+            // 1. 获取所有文档的词元
+            List<KbDocument> documents = documentMapper.selectList(null);
+            long totalDocuments = documents.size();
+
+            // 2. 统计每个词出现在多少文档中
+            Map<String, Long> termDocumentFrequency = new HashMap<>();
+
+            for (KbDocument doc : documents) {
+                if (StringUtils.hasText(doc.getContent())) {
+                    // 使用 nlpPipeline 处理文档
+                    edu.stanford.nlp.pipeline.CoreDocument document = new edu.stanford.nlp.pipeline.CoreDocument(
+                            doc.getContent());
+                    nlpPipeline.annotate(document);
+
+                    // 获取文档中的唯一词元
+                    Set<String> uniqueTerms = document.sentences().stream()
+                            .flatMap(sentence -> sentence.lemmas().stream())
+                            .collect(Collectors.toSet());
+
+                    // 更新词频统计
+                    uniqueTerms.forEach(term -> termDocumentFrequency.merge(term, 1L, Long::sum));
+                }
+            }
+
+            // 3. 计算并缓存IDF值
+            termDocumentFrequency.forEach((term, frequency) -> {
+                float idf = (float) Math.log10((double) totalDocuments / (frequency + 1));
+                String cacheKey = IDF_CACHE_PREFIX + term;
+                redisTemplate.opsForValue().set(cacheKey, idf, IDF_CACHE_EXPIRE, TimeUnit.SECONDS);
+            });
+
+            log.info("IDF缓存更新完成，共处理 {} 个词元", termDocumentFrequency.size());
+        } catch (Exception e) {
+            log.error("更新IDF缓存失败", e);
+        }
     }
 
     /**

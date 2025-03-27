@@ -19,11 +19,16 @@
         similarity, create_time </sql>
 
     <!-- 查找相似向量 -->
-    <select id="findSimilarVectors" resultMap="BaseResultMap"> SELECT dv.*, 1 - (dv.content_vector
+    <select id="findSimilarVectors" resultMap="BaseResultMap"> SELECT
+        dv.id,
+        dv.document_id,
+        dv.content_vector,
+        dv.chunk_index,
+        dv.chunk_content,
+        dv.create_time, 1 - (dv.content_vector
         &lt;=&gt; #{queryVector}::vector) as similarity FROM kb_document_vector dv JOIN kb_document
-        d ON dv.document_id = d.id WHERE d.kb_id in
-        <foreach collection="kbIds" item="kbId" open="(" separator="," close=")"> #{kbId} </foreach>
-        ORDER BY dv.content_vector &lt;=&gt;
+        d ON dv.document_id = d.id WHERE d.kb_id in <foreach collection="kbIds" item="kbId" open="("
+            separator="," close=")"> #{kbId} </foreach> ORDER BY dv.content_vector &lt;=&gt;
         #{queryVector}::vector LIMIT #{limit} </select>
 
     <!-- 根据文档ID查询向量 -->
@@ -37,5 +42,9 @@
         #{contentVector}::vector, #{chunkIndex}, #{chunkContent}, CURRENT_TIMESTAMP) ON CONFLICT
         (document_id, chunk_index) DO UPDATE SET content_vector = EXCLUDED.content_vector,
         chunk_content = EXCLUDED.chunk_content </insert>
+
+    <!-- 删除文档向量 -->
+    <delete id="deleteByDocumentId"> DELETE FROM kb_document_vector WHERE document_id =
+        #{documentId} </delete>
 
 </mapper>

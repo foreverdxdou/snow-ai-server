@@ -3,6 +3,7 @@ package com.dxdou.snowai.handler;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedTypes;
+import org.postgresql.util.PGobject;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
@@ -20,16 +21,17 @@ public class VectorTypeHandler extends BaseTypeHandler<float[]> {
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, float[] parameter, JdbcType jdbcType)
             throws SQLException {
-        // 将float数组转换为PostgreSQL向量格式
-        StringBuilder vectorStr = new StringBuilder("[");
+        PGobject vector = new PGobject();
+        vector.setType("vector");
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
         for (int j = 0; j < parameter.length; j++) {
-            vectorStr.append(parameter[j]);
-            if (j < parameter.length - 1) {
-                vectorStr.append(",");
-            }
+            if (j > 0) sb.append(",");
+            sb.append(parameter[j]);
         }
-        vectorStr.append("]");
-        ps.setString(i, vectorStr.toString());
+        sb.append("]");
+        vector.setValue(sb.toString());
+        ps.setObject(i, vector);
     }
 
     @Override

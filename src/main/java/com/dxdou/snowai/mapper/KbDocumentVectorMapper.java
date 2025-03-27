@@ -19,7 +19,7 @@ public interface KbDocumentVectorMapper extends BaseMapper<KbDocumentVector> {
      * 查找相似向量
      *
      * @param queryVector 查询向量
-     * @param kbIds        知识库ID列表
+     * @param kbIds       知识库ID列表
      * @param limit       限制数量
      * @return 相似向量列表
      */
@@ -40,4 +40,11 @@ public interface KbDocumentVectorMapper extends BaseMapper<KbDocumentVector> {
      * @param documentVector 文档向量
      */
     void insertOrUpdate(KbDocumentVector documentVector);
+
+    /**
+     * 根据文档ID删除向量
+     *
+     * @param documentId 文档ID
+     */
+    void deleteByDocumentId(@Param("documentId") Long documentId);
 }

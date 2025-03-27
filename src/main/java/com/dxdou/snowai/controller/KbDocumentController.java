@@ -3,6 +3,7 @@ package com.dxdou.snowai.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dxdou.snowai.common.R;
+import com.dxdou.snowai.domain.dto.KbDocumentDTO;
 import com.dxdou.snowai.domain.entity.KbDocument;
 import com.dxdou.snowai.domain.vo.KbDocumentVO;
 import com.dxdou.snowai.domain.vo.KbDocumentVersionVO;
@@ -56,20 +57,18 @@ public class KbDocumentController {
     @PostMapping("/upload")
     public R<KbDocumentVO> upload(
             @Parameter(description = "文件") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "标题") @RequestParam(required = false) String title,
             @Parameter(description = "知识库ID") @RequestParam Long kbId,
-            @Parameter(description = "分类ID") @RequestParam(required = false) Long categoryId,
             @Parameter(description = "标签ID列表") @RequestParam(required = false) List<Long> tagIds) {
         Long creatorId = authService.getCurrentUser().getId();
-        return R.ok(documentService.uploadDocument(file, title, kbId, categoryId, tagIds, creatorId));
+        return R.ok(documentService.uploadDocument(file, kbId, tagIds, creatorId));
     }
 
     @Operation(summary = "更新文档")
     @PutMapping("/{id}")
     public R<KbDocumentVO> update(
             @Parameter(description = "文档ID") @PathVariable Long id,
-            @RequestBody KbDocument document) {
-        return R.ok(documentService.updateDocument(id, document.getTitle(), document.getContent(), document.getCategoryId(), document.getTagIds()));
+            @RequestBody KbDocumentDTO document) {
+        return R.ok(documentService.updateDocument(id, document.getTitle(), document.getContent(), document.getTagIds()));
     }
 
     @Operation(summary = "删除文档")
