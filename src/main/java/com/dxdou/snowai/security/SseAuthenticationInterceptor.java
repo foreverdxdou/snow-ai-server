@@ -50,7 +50,7 @@ public class SseAuthenticationInterceptor implements HandlerInterceptor {
         if (jwtConfig.validateToken(jwt)) {
             String username = jwtConfig.getUsernameFromToken(jwt);
             
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null && userDetailsService != null) {
+            if (username != null && userDetailsService != null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
@@ -61,10 +61,15 @@ public class SseAuthenticationInterceptor implements HandlerInterceptor {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                return true;
             }
+            log.error("token校验失败 username--" + username);
         }
-        
-        
-        return true;
+        log.error("token校验失败 jwt--" + jwt);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.getWriter().write("{\"code\":401,\"message\":\"认证失败\"}");
+        return false;
     }
 }

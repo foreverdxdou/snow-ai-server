@@ -119,57 +119,194 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     @Override
     // @Transactional(rollbackFor = Exception.class)
     public SseEmitter streamChat(Long[] kbIds, QaRequest request, HttpServletResponse response) {
-        SseEmitter emitter = new SseEmitter();
         long startTime = System.currentTimeMillis();
 
-        try {
-            // 1. 获取默认的AI模型配置
-            LlmConfig model = getDefaultModel();
+        // 创建 SSE 发射器，设置超时时间为30分钟
+        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
 
-            // 2. 检索相关文档
-            List<KbDocument> relevantDocs = searchService
-                    .semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream()
-                    .map(vo -> {
-                        KbDocument doc = new KbDocument();
-                        doc.setId(vo.getId());
-                        doc.setTitle(vo.getTitle());
-                        doc.setContent(vo.getContent());
-                        return doc;
-                    }).collect(Collectors.toList());
+        // 使用 AtomicBoolean 来控制流的状态
+        AtomicBoolean isCompleted = new AtomicBoolean(false);
 
-            // 3. 构建提示词
-            String prompt = buildPrompt(request.getQuestion(), relevantDocs);
+        // 保存当前的安全上下文
+        SecurityContext context = SecurityContextHolder.getContext();
+        StringBuilder answer = new StringBuilder();
+        // 设置完成回调
+        emitter.onCompletion(() -> {
+            isCompleted.set(true);
+            SecurityContextHolder.setContext(context);
 
-            // 4. 流式调用AI模型
-            StringBuilder answer = new StringBuilder();
-            log.info("sessionId " + request.getSessionId());
-            streamCallAiModel(model, prompt, response, emitter, chunk -> {
-                answer.append(chunk);
-                try {
-                    emitter.send(chunk);
-                } catch (Exception e) {
-                    emitter.completeWithError(e);
-                }
-            });
+            log.info("SSE connection completed");
+            if (StringUtils.isNotBlank(answer.toString())) {
+                // 5. 保存对话历史
+                long processTime = System.currentTimeMillis() - startTime;
+                saveChatHistory(request.getSessionId(), null, request.getQuestion(), answer.toString(), null,
+                        processTime);
+            }
+        });
 
-            // 5. 保存对话历史
-            long processTime = System.currentTimeMillis() - startTime;
-            saveChatHistory(request.getSessionId(), kbIds, request.getQuestion(), answer.toString(), model.getId(),
-                    processTime);
-
-            // 6. 发送完成信号
-            emitter.send("DONE");
+        // 设置超时回调
+        emitter.onTimeout(() -> {
+            isCompleted.set(true);
             emitter.complete();
+        });
 
-        } catch (Exception e) {
-            emitter.completeWithError(e);
-        }
+        // 设置错误回调
+        emitter.onError(throwable -> {
+            log.error("SSE error occurred", throwable);
+            isCompleted.set(true);
+            try {
+                emitter.send(SseEmitter.event()
+                        .id(String.valueOf(System.currentTimeMillis()))
+                        .name("error")
+                        .data("Stream error occurred")
+                        .build());
+                emitter.complete();
+            } catch (IOException e) {
+                log.error("Error sending error event", e);
+            }
+        });
 
-        // 处理客户端断开连接
-        emitter.onCompletion(() -> log.info("SSE connection completed"));
-        emitter.onTimeout(() -> log.info("SSE connection timeout"));
-        emitter.onError(e -> log.info("SSE error: " + e.getMessage()));
+        // 异步处理流式响应
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 1. 获取默认的AI模型配置
+                LlmConfig model = getDefaultModel();
 
+                // 2. 检索相关文档
+                List<KbDocument> relevantDocs = searchService
+                        .semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream()
+                        .map(vo -> {
+                            KbDocument doc = new KbDocument();
+                            doc.setId(vo.getId());
+                            doc.setTitle(vo.getTitle());
+                            doc.setContent(vo.getContent());
+                            return doc;
+                        }).collect(Collectors.toList());
+
+                // 3. 构建提示词
+                String prompt = buildPrompt(request.getQuestion(), relevantDocs);
+
+                // 4. 构建请求体
+                Map<String, Object> requestBody = buildRequestBody(model, prompt);
+
+                // 5. 获取请求头
+                Map<String, String> headers = getHeaders(model);
+
+                // 6. 发送请求并处理流式响应
+                webClient.post()
+                        .uri(model.getApiUrl())
+                        .headers(h -> {
+                            headers.forEach(h::add);
+                            h.setCacheControl("no-cache");
+                            h.setPragma("no-cache");
+                            h.set("Accept-Encoding", "identity"); // 禁止 WebClient 请求压缩
+                        })
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToFlux(String.class)
+                        .doOnNext(chunk -> {
+                            if (isCompleted.get()) {
+                                return;
+                            }
+
+                            try {
+                                if ("[DONE]".equals(chunk)) {
+                                    if (!isCompleted.get()) {
+                                        emitter.send(SseEmitter.event()
+                                                .id(String.valueOf(System.currentTimeMillis()))
+                                                .name("done")
+                                                .data("[DONE]")
+                                                .build());
+                                    }
+                                    return;
+                                }
+
+                                Map<String, Object> chunkResponse = parseJson(chunk);
+                                if (chunkResponse != null && chunkResponse.containsKey("choices")) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse.get("choices");
+                                    if (!choices.isEmpty()) {
+                                        Map<String, Object> choice = choices.get(0);
+                                        if (choice.containsKey("delta") && choice.get("delta") instanceof Map) {
+                                            @SuppressWarnings("unchecked")
+                                            Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
+                                            if (delta.containsKey("content")) {
+                                                String content = (String) delta.get("content");
+                                                if (StringUtils.isNotBlank(content)) {
+                                                }
+                                                answer.append(content);
+                                                if (!isCompleted.get()) {
+                                                    emitter.send(SseEmitter.event()
+                                                            .id(String.valueOf(System.currentTimeMillis()))
+                                                            .name("message")
+                                                            .data(content)
+                                                            .build());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                log.error("Error processing chunk", e);
+                                if (!isCompleted.get()) {
+                                    try {
+                                        emitter.send(SseEmitter.event()
+                                                .id(String.valueOf(System.currentTimeMillis()))
+                                                .name("error")
+                                                .data("Error processing chunk: " + e.getMessage())
+                                                .build());
+                                    } catch (IOException ex) {
+                                        log.error("Error sending error event", ex);
+                                    }
+                                }
+                            }
+                        })
+                        .doOnComplete(() -> {
+                            if (!isCompleted.get()) {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .id(String.valueOf(System.currentTimeMillis()))
+                                            .name("complete")
+                                            .data("Stream completed")
+                                            .build());
+                                    emitter.complete();
+                                } catch (IOException e) {
+                                    log.error("Error completing stream", e);
+                                }
+                            }
+                        })
+                        .doOnError(error -> {
+                            log.error("Stream error", error);
+                            if (!isCompleted.get()) {
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .id(String.valueOf(System.currentTimeMillis()))
+                                            .name("error")
+                                            .data("Stream error: " + error.getMessage())
+                                            .build());
+                                    emitter.complete();
+                                } catch (IOException e) {
+                                    log.error("Error sending error event", e);
+                                }
+                            }
+                        })
+                        .subscribe();
+            } catch (Exception e) {
+                log.error("Error in stream processing", e);
+                if (!isCompleted.get()) {
+                    try {
+                        emitter.send(SseEmitter.event()
+                                .id(String.valueOf(System.currentTimeMillis()))
+                                .name("error")
+                                .data("Stream processing error: " + e.getMessage())
+                                .build());
+                        emitter.complete();
+                    } catch (IOException ex) {
+                        log.error("Error sending error event", ex);
+                    }
+                }
+            }
+        }, asyncExecutor);
         return emitter;
     }
 
@@ -310,11 +447,9 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                             if (delta.containsKey("content")) {
                                                 String content = (String) delta.get("content");
                                                 if (StringUtils.isNotBlank(content)) {
-                                                    log.info("Received chunk: {}", content);
                                                 }
                                                 answer.append(content);
                                                 if (!isCompleted.get()) {
-                                                    log.info("Sending chunk: {}", content);
                                                     emitter.send(SseEmitter.event()
                                                             .id(String.valueOf(System.currentTimeMillis()))
                                                             .name("message")
