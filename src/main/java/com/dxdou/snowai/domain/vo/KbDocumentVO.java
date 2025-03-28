@@ -1,5 +1,7 @@
 package com.dxdou.snowai.domain.vo;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.dxdou.snowai.handler.MinioTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -7,21 +9,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 文档VO
+ * 知识库文档VO
  *
  * @author foreverdxdou
  */
 @Data
-@Schema(description = "文档VO")
+@Schema(description = "知识库文档VO")
 public class KbDocumentVO {
 
-    @Schema(description = "文档ID")
+    @Schema(description = "主键ID")
     private Long id;
 
-    @Schema(description = "标题")
+    @Schema(description = "文档标题")
     private String title;
 
-    @Schema(description = "内容")
+    @Schema(description = "文档内容")
     private String content;
 
     @Schema(description = "摘要")
@@ -37,6 +39,7 @@ public class KbDocumentVO {
     private Long fileSize;
 
     @Schema(description = "文件URL")
+    @TableField(typeHandler = MinioTypeHandler.class)
     private String fileUrl;
 
     @Schema(description = "分类ID")
@@ -71,4 +74,10 @@ public class KbDocumentVO {
 
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
+
+    @Schema(description = "解析状态")
+    private Integer parseStatus;
+
+    @Schema(description = "解析失败原因")
+    private String parseError;
 }

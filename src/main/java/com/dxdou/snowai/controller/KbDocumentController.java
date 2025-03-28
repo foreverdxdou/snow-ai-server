@@ -13,18 +13,20 @@ import com.dxdou.snowai.service.KbDocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 /**
- * 文档控制器
+ * 知识库文档控制器
  *
  * @author foreverdxdou
  */
-@Tag(name = "文档管理")
+@Tag(name = "文档管理", description = "知识库文档相关接口")
 @RestController
 @RequestMapping("/api/v1/kb/document")
 @RequiredArgsConstructor
@@ -33,6 +35,38 @@ public class KbDocumentController {
     private final KbDocumentService documentService;
     private final AuthService authService;
 
+    /**
+     * 上传文档
+     *
+     * @param file 文件
+     * @param kbId 知识库ID
+     * @return 文档信息
+     */
+    @Operation(summary = "上传文档")
+    @PostMapping("/upload")
+    @PreAuthorize("hasAuthority('kb:document:add')")
+    public R<KbDocumentVO> upload(
+            @Parameter(description = "文件") @RequestParam("file") MultipartFile file,
+            @Parameter(description = "知识库ID") @RequestParam("kbId") Long kbId,
+            @Parameter(description = "标签ID列表") @RequestParam(required = false) List<Long> tagIds) {
+        Long creatorId = authService.getCurrentUser().getId();
+        return R.ok(documentService.uploadDocument(file, kbId, creatorId, tagIds));
+    }
+
+    /**
+     * 获取文档解析状态
+     *
+     * @param id 文档ID
+     * @return 解析状态
+     */
+    @Operation(summary = "获取文档解析状态")
+    @GetMapping("/{id}/parse-status")
+    @PreAuthorize("hasAuthority('kb:document:view')")
+    public R<KbDocumentVO> getParseStatus(@Parameter(description = "文档ID") @PathVariable Long id) {
+        return R.ok(documentService.getDocumentById(id));
+    }
+
+    @PreAuthorize("hasAuthority('kb:document:list')")
     @Operation(summary = "分页查询文档列表")
     @GetMapping("/page")
     public R<IPage<KbDocumentVO>> page(
@@ -47,32 +81,44 @@ public class KbDocumentController {
         return R.ok(documentService.getDocumentPage(page, title, kbId, categoryId, creatorId, status));
     }
 
+    /**
+     * 获取文档详情
+     *
+     * @param id 文档ID
+     * @return 文档详情
+     */
     @Operation(summary = "获取文档详情")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('kb:document:view')")
     public R<KbDocumentVO> getById(@Parameter(description = "文档ID") @PathVariable Long id) {
         return R.ok(documentService.getDocumentById(id));
     }
 
-    @Operation(summary = "上传文档")
-    @PostMapping("/upload")
-    public R<KbDocumentVO> upload(
-            @Parameter(description = "文件") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "知识库ID") @RequestParam Long kbId,
-            @Parameter(description = "标签ID列表") @RequestParam(required = false) List<Long> tagIds) {
-        Long creatorId = authService.getCurrentUser().getId();
-        return R.ok(documentService.uploadDocument(file, kbId, tagIds, creatorId));
-    }
-
+    /**
+     * 更新文档
+     *
+     * @param id  文档ID
+     * @param dto 文档信息
+     * @return 文档详情
+     */
     @Operation(summary = "更新文档")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('kb:document:edit')")
     public R<KbDocumentVO> update(
             @Parameter(description = "文档ID") @PathVariable Long id,
-            @RequestBody KbDocumentDTO document) {
-        return R.ok(documentService.updateDocument(id, document.getTitle(), document.getContent(), document.getTagIds()));
+            @Valid @RequestBody KbDocumentDTO dto) {
+        return R.ok(documentService.updateDocument(id, dto));
     }
 
+    /**
+     * 删除文档
+     *
+     * @param id 文档ID
+     * @return 操作结果
+     */
     @Operation(summary = "删除文档")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('kb:document:delete')")
     public R<Void> delete(@Parameter(description = "文档ID") @PathVariable Long id) {
         documentService.deleteDocument(id);
         return R.ok(null);

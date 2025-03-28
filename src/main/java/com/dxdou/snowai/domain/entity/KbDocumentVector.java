@@ -19,9 +19,9 @@ import java.time.LocalDateTime;
 public class KbDocumentVector {
 
     /**
-     * 主键
+     * 主键ID
      */
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
@@ -36,17 +36,17 @@ public class KbDocumentVector {
     private float[] contentVector;
 
     /**
-     * 分块索引
+     * 块索引
      */
     private Integer chunkIndex;
 
     /**
-     * 分块内容
+     * 块内容
      */
     private String chunkContent;
 
     /**
-     * 相似度分数
+     * 相似度
      */
     private Double similarity;
 

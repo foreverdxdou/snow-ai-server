@@ -49,4 +49,5 @@ public class ElasticsearchConfig {
         // 创建API客户端
         return new ElasticsearchClient(transport);
     }
+
 }

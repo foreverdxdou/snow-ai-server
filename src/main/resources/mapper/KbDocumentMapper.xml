@@ -8,7 +8,7 @@
         <result column="content" property="content" />
         <result column="file_type" property="fileType" />
         <result column="file_size" property="fileSize" />
-        <result column="file_url" property="fileUrl" />
+        <result column="file_url" property="fileUrl" typeHandler="com.dxdou.snowai.handler.MinioTypeHandler"/>
         <result column="category_id" property="categoryId" />
         <result column="kb_id" property="kbId" />
         <result column="version" property="version" />
@@ -17,6 +17,8 @@
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
         <result column="deleted" property="deleted" />
+        <result column="parse_status" property="parseStatus" />
+        <result column="parse_error" property="parseError" />
     </resultMap>
 
     <resultMap id="DocumentVOMap" type="com.dxdou.snowai.domain.vo.KbDocumentVO">
@@ -25,7 +27,7 @@
         <result column="content" property="content" />
         <result column="file_type" property="fileType" />
         <result column="file_size" property="fileSize" />
-        <result column="file_url" property="fileUrl" />
+        <result column="file_url" property="fileUrl" typeHandler="com.dxdou.snowai.handler.MinioTypeHandler"/>
         <result column="category_id" property="categoryId" />
         <result column="category_name" property="categoryName" />
         <result column="kb_id" property="kbId" />
@@ -36,6 +38,8 @@
         <result column="creator_name" property="creatorName" />
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
+        <result column="parse_status" property="parseStatus" />
+        <result column="parse_error" property="parseError" />
     </resultMap>
 
     <sql id="Base_Column_List"> id, title, content, file_type, file_size, file_url, category_id,
@@ -43,7 +47,7 @@
 
     <select id="selectDocumentList" resultMap="DocumentVOMap"> SELECT d.id, d.title, d.content,
         d.file_type, d.file_size, d.file_url, d.category_id, c.name AS category_name, d.kb_id,
-        k.name AS kb_name, d.version, d.status, d.creator_id, u.nickname AS creator_name,
+        k.name AS kb_name, d.version, d.status, d.creator_id, d.parse_status, d.parse_error, u.nickname AS creator_name,
         d.create_time, d.update_time FROM kb_document d LEFT JOIN kb_category c ON d.category_id =
         c.id LEFT JOIN kb_knowledge_base k ON d.kb_id = k.id LEFT JOIN sys_user u ON d.creator_id =
         u.id WHERE d.deleted = 0 <if test="title != null and title != ''"> AND d.title LIKE
@@ -59,7 +63,7 @@
     <select id="selectDocumentById" resultMap="DocumentVOMap"> SELECT d.id, d.title, d.content,
         d.file_type, d.file_size, d.file_url, d.category_id, c.name AS category_name, d.kb_id,
         k.name AS kb_name, d.version, d.status, d.creator_id, u.nickname AS creator_name,
-        d.create_time, d.update_time FROM kb_document d LEFT JOIN kb_category c ON d.category_id =
+        d.create_time, d.update_time, d.parse_status, d.parse_error FROM kb_document d LEFT JOIN kb_category c ON d.category_id =
         c.id LEFT JOIN kb_knowledge_base k ON d.kb_id = k.id LEFT JOIN sys_user u ON d.creator_id =
         u.id WHERE d.id = #{id} AND d.deleted = 0 </select>
 

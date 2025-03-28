@@ -1,22 +1,28 @@
 package com.dxdou.snowai.service.impl;
 
+import cn.hutool.http.HttpUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dxdou.snowai.domain.entity.KbDocument;
 import com.dxdou.snowai.domain.entity.KbDocumentVector;
+import com.dxdou.snowai.domain.vo.EmbeddingConfigVO;
 import com.dxdou.snowai.domain.vo.KbSearchVO;
 import com.dxdou.snowai.mapper.KbDocumentMapper;
 import com.dxdou.snowai.mapper.KbDocumentVectorMapper;
+import com.dxdou.snowai.service.EmbeddingConfigService;
 import com.dxdou.snowai.service.KbSearchService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -34,6 +40,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocument> implements KbSearchService {
 
+    private final EmbeddingConfigService embeddingConfigService;
     private final KbDocumentMapper documentMapper;
     private final KbDocumentVectorMapper documentVectorMapper;
     private final StanfordCoreNLP nlpPipeline;
@@ -183,8 +190,7 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void updateDocumentVector(Long docId) {
+    public void updateDocumentVector(Long docId, boolean useEmbedding) {
         // 1. 获取文档内容
         KbDocument document = documentMapper.selectById(docId);
         if (document == null || !StringUtils.hasText(document.getContent())) {
@@ -198,14 +204,23 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
         List<DocumentChunk> chunks = splitDocumentIntoChunks(document.getContent());
 
         // 4. 为每个块生成向量并保存
-        for (DocumentChunk chunk : chunks) {
-            float[] vector = generateDocumentVector(chunk.content);
+        for (int i = 0; i < chunks.size(); i++) {
+            DocumentChunk documentChunk = chunks.get(i);
+            float[] vector;
+
+            if (useEmbedding) {
+                // 使用Embedding生成向量
+                vector = generateEmbeddingVector(documentChunk.content);
+            } else {
+                // 使用NLP生成向量
+                vector = generateDocumentVector(documentChunk.content);
+            }
 
             KbDocumentVector documentVector = new KbDocumentVector();
             documentVector.setDocumentId(docId);
             documentVector.setContentVector(vector);
-            documentVector.setChunkIndex(chunk.index);
-            documentVector.setChunkContent(chunk.content);
+            documentVector.setChunkIndex(i);
+            documentVector.setChunkContent(documentChunk.content);
 
             documentVectorMapper.insert(documentVector);
         }
@@ -427,6 +442,106 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
         } catch (Exception e) {
             log.error("更新IDF缓存失败", e);
         }
+    }
+
+    @Override
+    public Page<KbSearchVO> embeddingSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> excludeIds) {
+        // 1. 获取查询文本的向量表示
+        float[] queryVector = getQueryVector(query);
+
+        // 2. 从向量数据库中检索相似文档块
+        List<KbDocumentVector> similarVectors = documentVectorMapper.findSimilarVectors(queryVector, kbIds,
+                page.getSize() * 3); // 获取更多结果以便后续处理
+
+        // 3. 按文档ID分组，选择最相似的块
+        Map<Long, KbDocumentVector> bestChunks = similarVectors.stream()
+                .filter(v -> excludeIds == null || !excludeIds.contains(v.getDocumentId()))
+                .collect(Collectors.groupingBy(
+                        KbDocumentVector::getDocumentId,
+                        Collectors.collectingAndThen(
+                                Collectors.toList(),
+                                chunks -> chunks.stream()
+                                        .max(Comparator.comparingDouble(KbDocumentVector::getSimilarity))
+                                        .orElse(null))));
+
+        // 4. 获取文档详情
+        List<KbDocument> documents = documentMapper.selectBatchIds(bestChunks.keySet());
+
+        // 5. 转换为VO对象并设置相关块内容
+        List<KbSearchVO> searchResults = documents.stream()
+                .map(doc -> {
+                    KbSearchVO vo = convertToSearchVO(doc);
+                    KbDocumentVector bestChunk = bestChunks.get(doc.getId());
+                    if (bestChunk != null) {
+                        vo.setSimilarity(bestChunk.getSimilarity());
+                        vo.setMatchedContent(bestChunk.getChunkContent());
+                    }
+                    return vo;
+                })
+                .sorted(Comparator.comparingDouble(KbSearchVO::getSimilarity).reversed())
+                .limit(page.getSize())
+                .collect(Collectors.toList());
+
+        // 6. 构建分页结果
+        page.setRecords(searchResults);
+        page.setTotal(searchResults.size());
+
+        return page;
+    }
+
+    @Override
+    public float[] generateEmbeddingVector(String text) {
+        if (!StringUtils.hasText(text)) {
+            return new float[1536];
+        }
+
+        EmbeddingConfigVO embeddingConfig = embeddingConfigService.getEnabledEmbeddingConfig();
+
+        try {
+            // 构造请求体
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("input", text);
+            requestBody.put("model", embeddingConfig.getModelType());
+
+            // 设置请求头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(embeddingConfig.getApiKey());
+
+            // 发送请求
+            String response = HttpUtil.createPost(embeddingConfig.getBaseUrl())
+                    .bearerAuth(embeddingConfig.getApiKey())
+                    .body(requestBody.toJSONString())
+                    .execute()
+                    .body();
+            log.info("Embedding API调用结果: {}", response);
+
+            // 解析响应
+            JSONObject responseJson = JSON.parseObject(response);
+            List<Double> embeddingList = responseJson.getJSONArray("data").getJSONObject(0).getJSONArray("embedding");
+
+            // 转换List<Double>为float[]
+            float[] vector = new float[embeddingList.size()];
+            for (int i = 0; i < embeddingList.size(); i++) {
+                vector[i] = embeddingList.get(i).floatValue();
+            }
+            return vector;
+
+        } catch (Exception e) {
+            log.error("OpenAI Embedding API调用失败: {}", e.getMessage());
+        }
+
+        // 降级方案：返回随机向量
+        return generateRandomVector(1536);
+    }
+
+    private float[] generateRandomVector(int dimension) {
+        float[] vector = new float[dimension];
+        Random rand = new Random();
+        for (int i = 0; i < dimension; i++) {
+            vector[i] = rand.nextFloat() * 2 - 1; // 生成-1到1之间的随机数
+        }
+        return vector;
     }
 
     /**

@@ -1,9 +1,7 @@
 package com.dxdou.snowai.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.dxdou.snowai.handler.MinioTypeHandler;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -46,6 +44,7 @@ public class KbDocument {
     /**
      * 文件URL
      */
+    @TableField(typeHandler = MinioTypeHandler.class)
     private String fileUrl;
 
     /**
@@ -88,4 +87,14 @@ public class KbDocument {
      */
     @TableLogic
     private Integer deleted;
+
+    /**
+     * 解析状态（0：未解析，1：解析中，2：解析成功，3：解析失败）
+     */
+    private Integer parseStatus;
+
+    /**
+     * 解析失败原因
+     */
+    private String parseError;
 }

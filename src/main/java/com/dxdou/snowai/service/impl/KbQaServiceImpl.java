@@ -15,9 +15,11 @@ import com.dxdou.snowai.domain.model.QaResponse;
 import com.dxdou.snowai.mapper.KbChatHistoryMapper;
 import com.dxdou.snowai.mapper.LlmTokenUsageMapper;
 import com.dxdou.snowai.service.AuthService;
+import com.dxdou.snowai.service.EmbeddingConfigService;
 import com.dxdou.snowai.service.KbQaService;
 import com.dxdou.snowai.service.KbSearchService;
 import com.dxdou.snowai.service.LlmConfigService;
+import com.dxdou.snowai.service.SystemConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +69,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     private final WebClient webClient;
     private final Executor asyncExecutor;
     private final ObjectMapper objectMapper;
+    private final SystemConfigService systemConfigService;
+    private final EmbeddingConfigService embeddingConfigService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -117,7 +121,6 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     }
 
     @Override
-    // @Transactional(rollbackFor = Exception.class)
     public SseEmitter streamChat(Long[] kbIds, QaRequest request, HttpServletResponse response) {
         long startTime = System.currentTimeMillis();
 
@@ -172,16 +175,32 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                 // 1. 获取默认的AI模型配置
                 LlmConfig model = getDefaultModel();
 
-                // 2. 检索相关文档
-                List<KbDocument> relevantDocs = searchService
-                        .semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream()
-                        .map(vo -> {
-                            KbDocument doc = new KbDocument();
-                            doc.setId(vo.getId());
-                            doc.setTitle(vo.getTitle());
-                            doc.setContent(vo.getContent());
-                            return doc;
-                        }).collect(Collectors.toList());
+                // 2. 获取系统配置，判断使用NLP还是Embedding
+                String searchType = systemConfigService.getConfigValue("kb.search.type", "NLP");
+                List<KbDocument> relevantDocs;
+                if ("EMBEDDING".equals(searchType)) {
+                    // 使用Embedding进行检索
+                    relevantDocs = searchService
+                            .embeddingSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream()
+                            .map(vo -> {
+                                KbDocument doc = new KbDocument();
+                                doc.setId(vo.getId());
+                                doc.setTitle(vo.getTitle());
+                                doc.setContent(vo.getContent());
+                                return doc;
+                            }).collect(Collectors.toList());
+                } else {
+                    // 使用NLP进行检索
+                    relevantDocs = searchService
+                            .semanticSearch(request.getQuestion(), kbIds, new Page<>(1, 5), null).getRecords().stream()
+                            .map(vo -> {
+                                KbDocument doc = new KbDocument();
+                                doc.setId(vo.getId());
+                                doc.setTitle(vo.getTitle());
+                                doc.setContent(vo.getContent());
+                                return doc;
+                            }).collect(Collectors.toList());
+                }
 
                 // 3. 构建提示词
                 String prompt = buildPrompt(request.getQuestion(), relevantDocs);
@@ -224,7 +243,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                 Map<String, Object> chunkResponse = parseJson(chunk);
                                 if (chunkResponse != null && chunkResponse.containsKey("choices")) {
                                     @SuppressWarnings("unchecked")
-                                    List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse.get("choices");
+                                    List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse
+                                            .get("choices");
                                     if (!choices.isEmpty()) {
                                         Map<String, Object> choice = choices.get(0);
                                         if (choice.containsKey("delta") && choice.get("delta") instanceof Map) {
@@ -233,14 +253,14 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                             if (delta.containsKey("content")) {
                                                 String content = (String) delta.get("content");
                                                 if (StringUtils.isNotBlank(content)) {
-                                                }
-                                                answer.append(content);
-                                                if (!isCompleted.get()) {
-                                                    emitter.send(SseEmitter.event()
-                                                            .id(String.valueOf(System.currentTimeMillis()))
-                                                            .name("message")
-                                                            .data(content)
-                                                            .build());
+                                                    answer.append(content);
+                                                    if (!isCompleted.get()) {
+                                                        emitter.send(SseEmitter.event()
+                                                                .id(String.valueOf(System.currentTimeMillis()))
+                                                                .name("message")
+                                                                .data(content)
+                                                                .build());
+                                                    }
                                                 }
                                             }
                                         }
@@ -248,41 +268,21 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                 }
                             } catch (Exception e) {
                                 log.error("Error processing chunk", e);
-                                if (!isCompleted.get()) {
-                                    try {
-                                        emitter.send(SseEmitter.event()
-                                                .id(String.valueOf(System.currentTimeMillis()))
-                                                .name("error")
-                                                .data("Error processing chunk: " + e.getMessage())
-                                                .build());
-                                    } catch (IOException ex) {
-                                        log.error("Error sending error event", ex);
-                                    }
-                                }
                             }
                         })
                         .doOnComplete(() -> {
                             if (!isCompleted.get()) {
-                                try {
-                                    emitter.send(SseEmitter.event()
-                                            .id(String.valueOf(System.currentTimeMillis()))
-                                            .name("complete")
-                                            .data("Stream completed")
-                                            .build());
-                                    emitter.complete();
-                                } catch (IOException e) {
-                                    log.error("Error completing stream", e);
-                                }
+                                emitter.complete();
                             }
                         })
                         .doOnError(error -> {
-                            log.error("Stream error", error);
+                            log.error("Error in stream processing", error);
                             if (!isCompleted.get()) {
                                 try {
                                     emitter.send(SseEmitter.event()
                                             .id(String.valueOf(System.currentTimeMillis()))
                                             .name("error")
-                                            .data("Stream error: " + error.getMessage())
+                                            .data("Error processing stream: " + error.getMessage())
                                             .build());
                                     emitter.complete();
                                 } catch (IOException e) {
@@ -293,20 +293,19 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         .subscribe();
             } catch (Exception e) {
                 log.error("Error in stream processing", e);
-                if (!isCompleted.get()) {
-                    try {
-                        emitter.send(SseEmitter.event()
-                                .id(String.valueOf(System.currentTimeMillis()))
-                                .name("error")
-                                .data("Stream processing error: " + e.getMessage())
-                                .build());
-                        emitter.complete();
-                    } catch (IOException ex) {
-                        log.error("Error sending error event", ex);
-                    }
+                try {
+                    emitter.send(SseEmitter.event()
+                            .id(String.valueOf(System.currentTimeMillis()))
+                            .name("error")
+                            .data("Error: " + e.getMessage())
+                            .build());
+                    emitter.complete();
+                } catch (IOException ex) {
+                    log.error("Error sending error event", ex);
                 }
             }
         }, asyncExecutor);
+
         return emitter;
     }
 
@@ -438,7 +437,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                 Map<String, Object> chunkResponse = parseJson(chunk);
                                 if (chunkResponse != null && chunkResponse.containsKey("choices")) {
                                     @SuppressWarnings("unchecked")
-                                    List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse.get("choices");
+                                    List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse
+                                            .get("choices");
                                     if (!choices.isEmpty()) {
                                         Map<String, Object> choice = choices.get(0);
                                         if (choice.containsKey("delta") && choice.get("delta") instanceof Map) {
@@ -696,8 +696,9 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param prompt   提示词
      * @param callback 回调函数
      */
-    private void streamCallAiModel(LlmConfig model, String prompt, HttpServletResponse servletResponse, SseEmitter emitter,
-                                   java.util.function.Consumer<String> callback) {
+    private void streamCallAiModel(LlmConfig model, String prompt, HttpServletResponse servletResponse,
+            SseEmitter emitter,
+            java.util.function.Consumer<String> callback) {
         servletResponse.setContentType("text/event-stream");
         servletResponse.setHeader("Cache-Control", "no-cache");
         servletResponse.setHeader("content-encoding", "br");
@@ -710,8 +711,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         // 2. 构建请求体
         JSONObject requestBody = new JSONObject();
         requestBody.put("model", model.getModelName());
-        requestBody.put("messages", new JSONObject[]{new JSONObject().put("role", "system").put("content", ""),
-                new JSONObject().put("role", "user").put("content", prompt)});
+        requestBody.put("messages", new JSONObject[] { new JSONObject().put("role", "system").put("content", ""),
+                new JSONObject().put("role", "user").put("content", prompt) });
         requestBody.put("temperature", 0.7);
         requestBody.put("max_tokens", 2000);
         requestBody.put("stream", true);
@@ -824,7 +825,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param processTime 处理时间
      */
     private void saveChatHistory(String sessionId, Long[] kbIds, String question, String answer, Long modelId,
-                                 long processTime) {
+            long processTime) {
         KbChatHistory history = new KbChatHistory();
         history.setSessionId(sessionId);
         history.setKbIds(kbIds != null && kbIds.length > 0 ? CollUtil.join(Arrays.asList(kbIds), ",") : null);
@@ -853,8 +854,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     private Map<String, Object> buildRequestBody(LlmConfig model, String prompt) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model.getModelName());
-        requestBody.put("messages", new JSONObject[]{new JSONObject().put("role", "system").put("content", ""),
-                new JSONObject().put("role", "user").put("content", prompt)});
+        requestBody.put("messages", new JSONObject[] { new JSONObject().put("role", "system").put("content", ""),
+                new JSONObject().put("role", "user").put("content", prompt) });
         requestBody.put("temperature", 0.7);
         requestBody.put("max_tokens", 2000);
         requestBody.put("stream", true);

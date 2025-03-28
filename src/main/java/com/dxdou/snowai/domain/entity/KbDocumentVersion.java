@@ -1,9 +1,7 @@
 package com.dxdou.snowai.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.dxdou.snowai.handler.MinioTypeHandler;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -46,6 +44,7 @@ public class KbDocumentVersion {
     /**
      * 文件URL
      */
+    @TableField(typeHandler = MinioTypeHandler.class)
     private String fileUrl;
 
     /**

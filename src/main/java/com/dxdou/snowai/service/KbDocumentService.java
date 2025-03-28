@@ -3,6 +3,7 @@ package com.dxdou.snowai.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.dxdou.snowai.domain.dto.KbDocumentDTO;
 import com.dxdou.snowai.domain.entity.KbDocument;
 import com.dxdou.snowai.domain.vo.KbDocumentVO;
 import com.dxdou.snowai.domain.vo.KbDocumentVersionVO;
@@ -12,11 +13,22 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
- * 文档服务接口
+ * 知识库文档服务接口
  *
  * @author foreverdxdou
  */
 public interface KbDocumentService extends IService<KbDocument> {
+
+    /**
+     * 上传文档
+     *
+     * @param file      文件
+     * @param kbId      知识库ID
+     * @param creatorId 创建者ID
+     * @param tagIds
+     * @return 文档信息
+     */
+    KbDocumentVO uploadDocument(MultipartFile file, Long kbId, Long creatorId, List<Long> tagIds);
 
     /**
      * 分页查询文档列表
@@ -30,37 +42,24 @@ public interface KbDocumentService extends IService<KbDocument> {
      * @return 文档列表
      */
     IPage<KbDocumentVO> getDocumentPage(Page<KbDocument> page, String title, Long kbId, Long categoryId, Long creatorId,
-            Integer status);
+                                        Integer status);
 
     /**
-     * 根据ID查询文档信息
+     * 获取文档详情
      *
      * @param id 文档ID
-     * @return 文档信息
+     * @return 文档详情
      */
     KbDocumentVO getDocumentById(Long id);
 
     /**
-     * 上传文档
-     *
-     * @param file       文件
-     * @param kbId       知识库ID
-     * @param tagIds     标签ID列表
-     * @param creatorId
-     * @return 文档信息
-     */
-    KbDocumentVO uploadDocument(MultipartFile file, Long kbId, List<Long> tagIds, Long creatorId);
-
-    /**
      * 更新文档
      *
-     * @param id         文档ID
-     * @param title      文档标题
-     * @param content    文档内容
-     * @param tagIds     标签ID列表
-     * @return 文档信息
+     * @param id  文档ID
+     * @param dto 文档信息
+     * @return 文档详情
      */
-    KbDocumentVO updateDocument(Long id, String title, String content, List<Long> tagIds);
+    KbDocumentVO updateDocument(Long id, KbDocumentDTO dto);
 
     /**
      * 删除文档
