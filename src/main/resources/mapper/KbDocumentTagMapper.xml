@@ -6,9 +6,18 @@
         <result property="documentId" column="document_id" />
         <result property="tagId" column="tag_id" />
         <result property="createTime" column="create_time" />
-        <result property="updateTime" column="update_time" />
-        <result property="createBy" column="create_by" />
-        <result property="updateBy" column="update_by" />
         <result property="deleted" column="deleted" />
     </resultMap>
+    <sql id="Base_Column_List">
+        id,document_id,tag_id,create_time,deleted    </sql>
+
+    <insert id="insertBatch">
+        insert into kb_document_tag (document_id,tag_id) values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.documentId},#{item.tagId})
+        </foreach>
+    </insert>
+    <delete id="deleteByDocumentId">
+        delete from kb_document_tag where document_id = #{documentId}
+    </delete>
 </mapper>

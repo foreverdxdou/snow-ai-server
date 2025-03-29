@@ -45,12 +45,34 @@
     <sql id="Base_Column_List"> id, title, content, file_type, file_size, file_url, category_id,
         kb_id, version, status, creator_id, create_time, update_time, deleted </sql>
 
-    <select id="selectDocumentList" resultMap="DocumentVOMap"> SELECT d.id, d.title, d.content,
-        d.file_type, d.file_size, d.file_url, d.category_id, c.name AS category_name, d.kb_id,
-        k.name AS kb_name, d.version, d.status, d.creator_id, d.parse_status, d.parse_error, u.nickname AS creator_name,
-        d.create_time, d.update_time FROM kb_document d LEFT JOIN kb_category c ON d.category_id =
-        c.id LEFT JOIN kb_knowledge_base k ON d.kb_id = k.id LEFT JOIN sys_user u ON d.creator_id =
-        u.id WHERE d.deleted = 0 <if test="title != null and title != ''"> AND d.title LIKE
+    <select id="selectDocumentList" resultMap="DocumentVOMap">
+        SELECT
+        d.ID,
+        d.title,
+        d.CONTENT,
+        d.file_type,
+        d.file_size,
+        d.file_url,
+        k.category_id,
+        C.NAME AS category_name,
+        d.kb_id,
+        K.NAME AS kb_name,
+        d.VERSION,
+        d.status,
+        d.creator_id,
+        d.parse_status,
+        d.parse_error,
+        u.nickname AS creator_name,
+        d.create_time,
+        d.update_time
+        FROM
+        kb_document d
+        LEFT JOIN kb_knowledge_base K ON d.kb_id = K.ID
+        LEFT JOIN kb_category C ON k.category_id = C.ID
+        LEFT JOIN sys_user u ON d.creator_id = u.ID
+        WHERE
+        d.deleted = 0
+        <if test="title != null and title != ''">       AND d.title LIKE
         CONCAT('%', #{title}, '%') </if>
             <if test="kbId != null"> AND d.kb_id = #{kbId} </if>
             <if
@@ -60,12 +82,32 @@
             <if test="status != null">
         AND d.status = #{status} </if> ORDER BY d.create_time DESC </select>
 
-    <select id="selectDocumentById" resultMap="DocumentVOMap"> SELECT d.id, d.title, d.content,
-        d.file_type, d.file_size, d.file_url, d.category_id, c.name AS category_name, d.kb_id,
-        k.name AS kb_name, d.version, d.status, d.creator_id, u.nickname AS creator_name,
-        d.create_time, d.update_time, d.parse_status, d.parse_error FROM kb_document d LEFT JOIN kb_category c ON d.category_id =
-        c.id LEFT JOIN kb_knowledge_base k ON d.kb_id = k.id LEFT JOIN sys_user u ON d.creator_id =
-        u.id WHERE d.id = #{id} AND d.deleted = 0 </select>
+    <select id="selectDocumentById" resultMap="DocumentVOMap"> SELECT
+    d.ID,
+	d.title,
+	d.CONTENT,
+	d.file_type,
+	d.file_size,
+	d.file_url,
+	k.category_id,
+	C.NAME AS category_name,
+	d.kb_id,
+	K.NAME AS kb_name,
+	d.VERSION,
+	d.status,
+	d.creator_id,
+	d.parse_status,
+	d.parse_error,
+	u.nickname AS creator_name,
+	d.create_time,
+	d.update_time
+FROM
+	kb_document d
+	 LEFT JOIN kb_knowledge_base K ON d.kb_id = K.ID
+	 LEFT JOIN kb_category C ON k.category_id = C.ID
+	 LEFT JOIN sys_user u ON d.creator_id = u.ID
+WHERE
+	d.deleted = 0 WHERE d.id = #{id} AND d.deleted = 0 </select>
 
     <select id="selectDocumentTags" resultType="com.dxdou.snowai.domain.vo.KbTagVO"> SELECT t.id,
         t.name, t.description, t.kb_id, k.name AS kb_name, t.creator_id, u.nickname AS creator_name,
