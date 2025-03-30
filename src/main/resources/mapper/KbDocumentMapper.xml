@@ -76,7 +76,7 @@
         CONCAT('%', #{title}, '%') </if>
             <if test="kbId != null"> AND d.kb_id = #{kbId} </if>
             <if
-            test="categoryId != null"> AND d.category_id = #{categoryId} </if>
+            test="categoryId != null"> AND k.category_id = #{categoryId} </if>
             <if
             test="creatorId != null"> AND d.creator_id = #{creatorId} </if>
             <if test="status != null">

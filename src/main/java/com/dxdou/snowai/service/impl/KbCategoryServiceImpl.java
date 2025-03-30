@@ -9,11 +9,9 @@ import com.dxdou.snowai.domain.vo.KbCategoryVO;
 import com.dxdou.snowai.mapper.KbCategoryMapper;
 import com.dxdou.snowai.service.KbCategoryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,7 +52,7 @@ public class KbCategoryServiceImpl extends ServiceImpl<KbCategoryMapper, KbCateg
         // 2. 检查父分类是否存在
         if (parentId != null) {
             KbCategory parentCategory = getById(parentId);
-            if (parentCategory == null || !parentCategory.getKbId().equals(kbId)) {
+            if (parentCategory == null) {
                 throw new BusinessException("父分类不存在");
             }
         }
@@ -64,7 +62,6 @@ public class KbCategoryServiceImpl extends ServiceImpl<KbCategoryMapper, KbCateg
         category.setName(name);
         category.setDescription(description);
         category.setParentId(parentId);
-        category.setKbId(kbId);
         category.setSort(sort != null ? sort : 0);
         category.setCreatorId(creatorId);
         category.setStatus(1);
@@ -92,7 +89,7 @@ public class KbCategoryServiceImpl extends ServiceImpl<KbCategoryMapper, KbCateg
         // 3. 检查父分类是否存在
         if (parentId != null) {
             KbCategory parentCategory = getById(parentId);
-            if (parentCategory == null || !parentCategory.getKbId().equals(category.getKbId())) {
+            if (parentCategory == null) {
                 throw new BusinessException("父分类不存在");
             }
         }
