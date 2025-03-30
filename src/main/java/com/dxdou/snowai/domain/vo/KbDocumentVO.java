@@ -75,7 +75,7 @@ public class KbDocumentVO {
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
 
-    @Schema(description = "解析状态")
+    @Schema(description = "解析状态（0：未解析，1：解析中，2：解析成功，3：解析失败）")
     private Integer parseStatus;
 
     @Schema(description = "解析失败原因")

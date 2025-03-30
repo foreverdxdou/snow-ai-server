@@ -1,12 +1,11 @@
 package com.dxdou.snowai.domain.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 /**
  * 知识库文档DTO
@@ -36,7 +35,7 @@ public class KbDocumentDTO {
     private Long categoryId;
 
     @Schema(description = "状态")
-    @NotNull(message = "状态不能为空")
+//    @NotNull(message = "状态不能为空")
     private Integer status;
 
     @Schema(description = "标签ID列表")
