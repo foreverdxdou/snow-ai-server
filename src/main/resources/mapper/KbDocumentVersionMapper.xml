@@ -20,7 +20,7 @@
         <result column="version" property="version" />
         <result column="title" property="title" />
         <result column="content" property="content" />
-        <result column="file_url" property="fileUrl" />
+        <result column="file_url" property="fileUrl" typeHandler="com.dxdou.snowai.handler.MinioTypeHandler"/>
         <result column="creator_id" property="creatorId" />
         <result column="creator_name" property="creatorName" />
         <result column="create_time" property="createTime" />
