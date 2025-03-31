@@ -1,8 +1,10 @@
 package com.dxdou.snowai.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.dxdou.snowai.common.R;
 import com.dxdou.snowai.domain.entity.LlmConfig;
+import com.dxdou.snowai.domain.vo.LlmConfigVO;
 import com.dxdou.snowai.service.LlmConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,14 +29,15 @@ public class LlmConfigController {
 
     @Operation(summary = "获取所有大模型配置")
     @GetMapping("/list")
-    public R<List<LlmConfig>> list() {
-        return R.ok(llmConfigService.list(Wrappers.lambdaQuery(LlmConfig.class).orderByDesc(LlmConfig::getCreateTime)));
+    public R<List<LlmConfigVO>> list() {
+        List<LlmConfigVO> configVos = BeanUtil.copyToList(llmConfigService.list(Wrappers.lambdaQuery(LlmConfig.class).orderByDesc(LlmConfig::getCreateTime)), LlmConfigVO.class);
+        return R.ok(configVos);
     }
 
     @Operation(summary = "获取指定大模型配置")
     @GetMapping("/{id}")
-    public R<LlmConfig> getById(@Parameter(description = "配置ID") @PathVariable Long id) {
-        return R.ok(llmConfigService.getById(id));
+    public R<LlmConfigVO> getById(@Parameter(description = "配置ID") @PathVariable Long id) {
+        return R.ok(BeanUtil.copyProperties(llmConfigService.getById(id), LlmConfigVO.class));
     }
 
     @Operation(summary = "新增大模型配置")

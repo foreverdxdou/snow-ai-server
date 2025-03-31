@@ -1,5 +1,6 @@
 package com.dxdou.snowai.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -24,6 +25,7 @@ public class EmbeddingConfigVO {
     private String modelType;
 
     @Schema(description = "API密钥")
+    @JsonIgnore
     private String apiKey;
 
     @Schema(description = "API基础URL")

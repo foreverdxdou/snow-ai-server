@@ -32,7 +32,6 @@ public class EmbeddingConfigDTO {
     private String baseUrl;
 
     @Schema(description = "模型维度")
-    @NotNull(message = "模型维度不能为空")
     private Integer dimensions;
 
     @Schema(description = "是否启用")

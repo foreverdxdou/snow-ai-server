@@ -145,7 +145,7 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
      */
     private void disableAllConfigs() {
         LambdaQueryWrapper<EmbeddingConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(EmbeddingConfig::getStatus, true);
+        wrapper.eq(EmbeddingConfig::getStatus, 1);
         EmbeddingConfig config = new EmbeddingConfig();
         config.setStatus(0);
         embeddingConfigMapper.update(config, wrapper);
