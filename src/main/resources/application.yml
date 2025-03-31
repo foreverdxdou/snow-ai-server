@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: snow-ai-server
+  # 增加上传文件大小限制
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
 
   # 数据库配置
   datasource:

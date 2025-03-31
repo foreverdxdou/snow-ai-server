@@ -37,7 +37,7 @@ public class EmbeddingConfigDTO {
 
     @Schema(description = "是否启用")
     @NotNull(message = "是否启用不能为空")
-    private Boolean enabled;
+    private Integer status;
 
     @Schema(description = "备注")
     private String remark;

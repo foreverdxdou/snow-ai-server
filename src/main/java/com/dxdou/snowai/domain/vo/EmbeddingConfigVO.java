@@ -33,7 +33,7 @@ public class EmbeddingConfigVO {
     private Integer dimensions;
 
     @Schema(description = "是否启用")
-    private Integer enabled;
+    private Integer status;
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;

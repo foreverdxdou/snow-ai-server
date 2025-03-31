@@ -70,5 +70,5 @@ public interface EmbeddingConfigService {
      * @param status
      * @return
      */
-    EmbeddingConfigVO updateEnabledStatus(Long id, Boolean status);
+    EmbeddingConfigVO updateEnabledStatus(Long id, Integer status);
 }

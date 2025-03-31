@@ -28,13 +28,13 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
     private final EmbeddingConfigMapper embeddingConfigMapper;
 
     @Override
-    public Page<EmbeddingConfigVO> getEmbeddingConfigPage(Page<EmbeddingConfig> page, String name, Integer enabled) {
+    public Page<EmbeddingConfigVO> getEmbeddingConfigPage(Page<EmbeddingConfig> page, String name, Integer status) {
         LambdaQueryWrapper<EmbeddingConfig> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(name)) {
             wrapper.like(EmbeddingConfig::getName, name);
         }
-        if (enabled != null) {
-            wrapper.eq(EmbeddingConfig::getEnabled, enabled);
+        if (status != null) {
+            wrapper.eq(EmbeddingConfig::getStatus, status);
         }
         wrapper.orderByDesc(EmbeddingConfig::getCreateTime);
 
@@ -66,7 +66,7 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
         }
 
         // 如果启用，则禁用其他配置
-        if (dto.getEnabled()) {
+        if (dto.getStatus().equals(1)) {
             disableAllConfigs();
         }
 
@@ -97,7 +97,7 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
         }
 
         // 如果启用，则禁用其他配置
-        if (dto.getEnabled()) {
+        if (dto.getStatus().equals(1)) {
             disableAllConfigs();
         }
 
@@ -121,7 +121,7 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
     @Override
     public EmbeddingConfigVO getEnabledEmbeddingConfig() {
         LambdaQueryWrapper<EmbeddingConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(EmbeddingConfig::getEnabled, true);
+        wrapper.eq(EmbeddingConfig::getStatus, true);
         EmbeddingConfig config = embeddingConfigMapper.selectOne(wrapper);
         if (config == null) {
             throw new BusinessException("未找到启用的Embedding模型配置");
@@ -130,12 +130,12 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
     }
 
     @Override
-    public EmbeddingConfigVO updateEnabledStatus(Long id, Boolean status) {
-        if (status) {
+    public EmbeddingConfigVO updateEnabledStatus(Long id, Integer status) {
+        if (status.equals(1)) {
             disableAllConfigs();
         }
         EmbeddingConfig embeddingConfig = new EmbeddingConfig();
-        embeddingConfig.setEnabled(status);
+        embeddingConfig.setStatus(status);
         embeddingConfig.setId(id);
         return embeddingConfigMapper.updateById(embeddingConfig) > 0 ? getEmbeddingConfigById(id) : null;
     }
@@ -145,9 +145,9 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
      */
     private void disableAllConfigs() {
         LambdaQueryWrapper<EmbeddingConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(EmbeddingConfig::getEnabled, true);
+        wrapper.eq(EmbeddingConfig::getStatus, true);
         EmbeddingConfig config = new EmbeddingConfig();
-        config.setEnabled(false);
+        config.setStatus(0);
         embeddingConfigMapper.update(config, wrapper);
     }
 
@@ -157,10 +157,10 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
     private EmbeddingConfigVO convertToVO(EmbeddingConfig config) {
         EmbeddingConfigVO vo = new EmbeddingConfigVO();
         BeanUtils.copyProperties(config, vo);
-        if (config.getEnabled()) {
-            vo.setEnabled(1);
+        if (config.getStatus().equals(1)) {
+            vo.setStatus(1);
         } else {
-            vo.setEnabled(0);
+            vo.setStatus(0);
         }
         return vo;
     }

@@ -34,7 +34,7 @@ public class EmbeddingConfigController {
      *
      * @param page    分页参数
      * @param name    模型名称
-     * @param enabled 是否启用
+     * @param status 是否启用
      * @return 配置列表
      */
     @Operation(summary = "分页查询Embedding模型配置列表")
@@ -43,8 +43,8 @@ public class EmbeddingConfigController {
     public R<Page<EmbeddingConfigVO>> list(
             @Parameter(description = "分页参数") Page<EmbeddingConfig> page,
             @Parameter(description = "模型名称") @RequestParam(required = false) String name,
-            @Parameter(description = "是否启用") @RequestParam(required = false) Integer enabled) {
-        return R.ok(embeddingConfigService.getEmbeddingConfigPage(page, name, enabled));
+            @Parameter(description = "是否启用") @RequestParam(required = false) Integer status) {
+        return R.ok(embeddingConfigService.getEmbeddingConfigPage(page, name, status));
     }
 
     /**
@@ -109,7 +109,7 @@ public class EmbeddingConfigController {
     @PutMapping("/{id}/status")
     public R<EmbeddingConfigVO> updateEnabledStatus(@Parameter(description = "配置ID") @PathVariable Long id,
                                                     @Parameter(description = "状态") @RequestParam Integer status) {
-        return R.ok(embeddingConfigService.updateEnabledStatus(id, 1 == status));
+        return R.ok(embeddingConfigService.updateEnabledStatus(id, status));
     }
 
     @Operation(summary = "获取启用的Embedding模型配置")

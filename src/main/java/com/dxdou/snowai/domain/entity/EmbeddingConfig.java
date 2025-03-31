@@ -50,7 +50,7 @@ public class EmbeddingConfig {
     /**
      * 是否启用（0：禁用，1：启用）
      */
-    private Boolean enabled;
+    private Integer status;
 
     /**
      * 创建时间
