@@ -19,8 +19,8 @@
 
     <!-- 查询角色列表（包含权限信息） -->
     <select id="selectRoleList" resultType="com.dxdou.snowai.domain.vo.SysRoleVO"> select r.id,
-        r.role_name, r.role_code, r.description, r.create_time, r.update_time, group_concat(distinct
-        p.name) as permission_names, group_concat(distinct p.permission_code) as permission_codes
+        r.role_name, r.role_code, r.description, r.create_time, r.update_time, 	array_to_string( ARRAY_AGG ( DISTINCT P.NAME ), ',' ) AS permission_names,
+        array_to_string( ARRAY_AGG ( DISTINCT P.permission_code ), ',' ) AS permission_codes
         from sys_role r left join sys_role_permission rp on r.id = rp.role_id and rp.deleted = 0
         left join sys_permission p on rp.permission_id = p.id and p.deleted = 0 where r.deleted = 0 <if
             test="roleName != null and roleName != ''"> and r.role_name like concat('%',

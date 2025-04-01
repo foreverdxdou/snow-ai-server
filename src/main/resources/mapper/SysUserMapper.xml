@@ -7,6 +7,7 @@
         <id column="id" property="id" />
         <result column="username" property="username" />
         <result column="password" property="password" />
+        <result column="phone" property="phone" />
         <result column="nickname" property="nickname" />
         <result column="email" property="email" />
         <result column="avatar" property="avatar" />
@@ -18,7 +19,7 @@
     </resultMap>
 
     <!-- 通用查询结果列 -->
-    <sql id="Base_Column_List"> id, username, password, nickname, email, avatar, dept_id, status,
+    <sql id="Base_Column_List"> id, username, phone, password, nickname, email, avatar, dept_id, status,
         deleted, create_time, update_time </sql>
 
     <!-- 根据用户名查询用户信息 -->
@@ -27,13 +28,15 @@
 
     <!-- 查询用户列表（包含角色信息） -->
     <select id="selectUserList" resultType="com.dxdou.snowai.domain.vo.SysUserVO"> select u.id,
-        u.username, u.nickname, u.email, u.avatar, u.dept_id, u.status, u.create_time,
-        u.update_time, group_concat(distinct r.role_name) as role_names, group_concat(distinct
-        r.role_code) as role_codes from sys_user u left join sys_user_role ur on u.id = ur.user_id
+        u.username, u.nickname, u.email, u.phone, u.avatar, u.dept_id, u.status, u.create_time,
+        u.update_time, array_to_string(ARRAY_AGG( distinct r.role_name), ',') as role_names, array_to_string(ARRAY_AGG( distinct
+        r.role_code), ',') as role_codes from sys_user u left join sys_user_role ur on u.id = ur.user_id
         and ur.deleted = 0 left join sys_role r on ur.role_id = r.id and r.deleted = 0 where
         u.deleted = 0 <if test="username != null and username != ''"> and u.username like
         concat('%', #{username}, '%') </if>
         <if test="status != null"> and u.status = #{status} </if>
+        <if test="email != null"> and u.email like concat('%', #{email}, '%') </if>
+        <if test="phone != null"> and u.phone like concat('%', #{phone}, '%') </if>
         <if
             test="deptId != null"> and u.dept_id = #{deptId} </if> group by u.id </select>
 

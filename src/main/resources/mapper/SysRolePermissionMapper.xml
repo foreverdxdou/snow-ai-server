@@ -16,11 +16,12 @@
     <sql id="Base_Column_List"> id, role_id, permission_id, deleted, create_time, update_time </sql>
 
     <!-- 批量插入角色权限关联 -->
-    <insert id="insertBatch"> insert into sys_role_permission (id, role_id, permission_id, deleted,
-        create_time, update_time) values <foreach collection="rolePermissions" item="rolePermission"
-            separator=","> (#{rolePermission.id}, #{rolePermission.roleId},
-        #{rolePermission.permissionId}, #{rolePermission.deleted}, #{rolePermission.createTime},
-        #{rolePermission.updateTime}) </foreach>
+    <insert id="insertBatch">insert into sys_role_permission (id, role_id, permission_id) values
+        <foreach collection="rolePermissions" item="rolePermission"
+                 separator=",">
+            (#{rolePermission.id}, #{rolePermission.roleId},
+            #{rolePermission.permissionId})
+        </foreach>
     </insert>
 
 </mapper> 

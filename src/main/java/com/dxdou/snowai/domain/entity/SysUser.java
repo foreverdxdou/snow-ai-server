@@ -46,6 +46,11 @@ public class SysUser {
     private String email;
 
     /**
+     * 手机号
+     */
+    private String phone;
+
+    /**
      * 头像
      */
     private String avatar;

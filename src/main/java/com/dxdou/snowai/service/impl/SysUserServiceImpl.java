@@ -15,11 +15,9 @@ import com.dxdou.snowai.service.SysPermissionService;
 import com.dxdou.snowai.service.SysRoleService;
 import com.dxdou.snowai.service.SysUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,8 +44,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId) {
-        return userMapper.selectUserList(page, username, status, deptId);
+    public Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId, String email, String phone) {
+        return userMapper.selectUserList(page, username, status, deptId, email, phone);
     }
 
     @Override

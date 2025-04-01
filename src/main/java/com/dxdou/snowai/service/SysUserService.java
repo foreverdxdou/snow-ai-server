@@ -31,9 +31,11 @@ public interface SysUserService extends IService<SysUser> {
      * @param username 用户名
      * @param status   状态
      * @param deptId   部门ID
+     * @param email
+     * @param phone
      * @return 用户列表
      */
-    Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId);
+    Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId, String email, String phone);
 
     /**
      * 创建用户

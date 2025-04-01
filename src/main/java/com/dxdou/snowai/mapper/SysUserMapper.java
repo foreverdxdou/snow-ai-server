@@ -30,9 +30,11 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
      * @param username 用户名
      * @param status   状态
      * @param deptId   部门ID
+     * @param email
+     * @param phone
      * @return 用户列表
      */
     Page<SysUserVO> selectUserList(Page<SysUser> page, @Param("username") String username,
-            @Param("status") Integer status, @Param("deptId") Long deptId);
+                                   @Param("status") Integer status, @Param("deptId") Long deptId, String email, String phone);
 
 }
