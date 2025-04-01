@@ -36,11 +36,11 @@ public class SysUserController {
             @Parameter(description = "用户名") @RequestParam(required = false) String username,
             @Parameter(description = "邮箱") @RequestParam(required = false) String email,
             @Parameter(description = "手机号") @RequestParam(required = false) String phone,
-            @Parameter(description = "昵称") @RequestParam(required = false) String nickName,
+            @Parameter(description = "昵称") @RequestParam(required = false) String nickname,
             @Parameter(description = "状态") @RequestParam(required = false) Integer status,
             @Parameter(description = "部门ID") @RequestParam(required = false) Long deptId) {
         Page<SysUser> page = new Page<>(current, size);
-        return R.ok(userService.getUserPage(page, username, status, deptId, email, phone, nickName));
+        return R.ok(userService.getUserPage(page, username, status, deptId, email, phone, nickname));
     }
 
     @Operation(summary = "获取用户详情")
