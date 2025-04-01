@@ -44,8 +44,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId, String email, String phone) {
-        return userMapper.selectUserList(page, username, status, deptId, email, phone);
+    public Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId, String email, String phone, String nickName) {
+        return userMapper.selectUserList(page, username, status, deptId, email, phone, nickName);
     }
 
     @Override

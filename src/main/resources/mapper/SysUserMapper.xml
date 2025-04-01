@@ -35,8 +35,9 @@
         u.deleted = 0 <if test="username != null and username != ''"> and u.username like
         concat('%', #{username}, '%') </if>
         <if test="status != null"> and u.status = #{status} </if>
-        <if test="email != null"> and u.email like concat('%', #{email}, '%') </if>
-        <if test="phone != null"> and u.phone like concat('%', #{phone}, '%') </if>
+        <if test="email != null and email != ''"> and u.email like concat('%', #{email}, '%') </if>
+        <if test="nickName != null and nickName != ''"> and u.nickname like concat('%', #{nickName}, '%') </if>
+        <if test="phone != null and phone != ''"> and u.phone like concat('%', #{phone}, '%') </if>
         <if
             test="deptId != null"> and u.dept_id = #{deptId} </if> group by u.id </select>
 
