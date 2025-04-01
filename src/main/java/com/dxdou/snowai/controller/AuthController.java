@@ -9,6 +9,7 @@ import com.dxdou.snowai.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -45,7 +46,7 @@ public class AuthController {
      */
     @Operation(summary = "用户注册")
     @PostMapping("/register")
-    public R<Void> register(@RequestBody RegisterRequest request) {
+    public R<Void> register(@Validated @RequestBody RegisterRequest request) {
         SysUser user = new SysUser();
         user.setUsername(request.getUsername());
         user.setPassword(request.getPassword());

@@ -1,5 +1,6 @@
 package com.dxdou.snowai.service.impl;
 
+import com.dxdou.snowai.common.BusinessException;
 import com.dxdou.snowai.config.JwtConfig;
 import com.dxdou.snowai.domain.entity.SysUser;
 import com.dxdou.snowai.service.AuthService;
@@ -43,7 +44,7 @@ public class AuthServiceImpl implements AuthService {
     public void register(SysUser user) {
         // 检查用户名是否已存在
         if (sysUserService.getByUsername(user.getUsername()) != null) {
-            throw new RuntimeException("用户名已存在");
+            throw new BusinessException("用户名已存在");
         }
 
         // 加密密码
