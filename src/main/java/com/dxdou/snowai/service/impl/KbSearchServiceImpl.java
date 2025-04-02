@@ -1,12 +1,15 @@
 package com.dxdou.snowai.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.dxdou.snowai.common.BusinessException;
 import com.dxdou.snowai.domain.entity.KbDocument;
+import com.dxdou.snowai.domain.entity.KbDocumentIndex;
 import com.dxdou.snowai.domain.entity.KbDocumentVector;
 import com.dxdou.snowai.domain.vo.EmbeddingConfigVO;
 import com.dxdou.snowai.domain.vo.KbSearchVO;
@@ -18,10 +21,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -43,9 +52,9 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     private final EmbeddingConfigService embeddingConfigService;
     private final KbDocumentMapper documentMapper;
     private final KbDocumentVectorMapper documentVectorMapper;
-    private final StanfordCoreNLP nlpPipeline;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ElasticsearchOperations elasticsearchTemplate;
     private static final String IDF_CACHE_PREFIX = "kb:idf:";
     private static final int IDF_CACHE_EXPIRE = 24 * 60 * 60; // 24小时
     private static final String QUERY_VECTOR_CACHE_PREFIX = "kb:query:vector:";
@@ -55,12 +64,30 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
 
     @Override
     public Page<KbSearchVO> semanticSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> tagIds) {
+        // 使用ElasticsearchOperations根据关键词检索文档KbDocumentIndex
+        Criteria criteria = new Criteria().or("content").contains(query)
+                .or("title").contains(query);
+                ; // 假设在 content 字段中搜索
+        Query searchQuery = CriteriaQuery.builder(criteria).withPageable(
+                Pageable.ofSize((int) page.getSize())).build();
+
+        SearchHits<KbDocumentIndex> searchHits = elasticsearchTemplate.search(searchQuery, KbDocumentIndex.class);
+
+        List<KbDocumentIndex> results = searchHits.getSearchHits().stream()
+                .map(SearchHit::getContent)
+                .collect(Collectors.toList());
+        Set<Long> docIds = new HashSet<>();
+        if (CollUtil.isNotEmpty(results)) {
+            docIds = results.stream().map(kbDocumentIndex -> Long.valueOf(kbDocumentIndex.getId())).collect(Collectors.toSet());
+        }
+
+
         // 1. 获取查询词的向量表示
         float[] queryVector = getQueryVector(query);
 
         // 2. 从向量数据库中检索相似文档块
         List<KbDocumentVector> similarVectors = documentVectorMapper.findSimilarVectors(queryVector, kbIds,
-                page.getSize() * 3); // 获取更多结果以便后续处理
+                docIds, page.getSize() * 3); // 获取更多结果以便后续处理
 
         // 3. 按文档ID分组，选择最相似的块
         Map<Long, KbDocumentVector> bestChunks = similarVectors.stream()
@@ -316,6 +343,10 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
             edu.stanford.nlp.pipeline.CoreDocument document = new edu.stanford.nlp.pipeline.CoreDocument(text);
 
             // 使用 nlpPipeline 处理文档
+            Properties props = new Properties();
+            props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
+            props.setProperty("coref.algorithm", "neural");
+            StanfordCoreNLP nlpPipeline = new StanfordCoreNLP(props);
             nlpPipeline.annotate(document);
 
             // 获取所有词元（lemmas）
@@ -404,53 +435,74 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     }
 
     // 批量更新IDF缓存的方法
-    @Scheduled(cron = "0 0 3 * * ?") // 每天凌晨3点执行
-    public void updateIDFCache() {
-        try {
-            // 1. 获取所有文档的词元
-            List<KbDocument> documents = documentMapper.selectList(null);
-            long totalDocuments = documents.size();
-
-            // 2. 统计每个词出现在多少文档中
-            Map<String, Long> termDocumentFrequency = new HashMap<>();
-
-            for (KbDocument doc : documents) {
-                if (StringUtils.hasText(doc.getContent())) {
-                    // 使用 nlpPipeline 处理文档
-                    edu.stanford.nlp.pipeline.CoreDocument document = new edu.stanford.nlp.pipeline.CoreDocument(
-                            doc.getContent());
-                    nlpPipeline.annotate(document);
-
-                    // 获取文档中的唯一词元
-                    Set<String> uniqueTerms = document.sentences().stream()
-                            .flatMap(sentence -> sentence.lemmas().stream())
-                            .collect(Collectors.toSet());
-
-                    // 更新词频统计
-                    uniqueTerms.forEach(term -> termDocumentFrequency.merge(term, 1L, Long::sum));
-                }
-            }
-
-            // 3. 计算并缓存IDF值
-            termDocumentFrequency.forEach((term, frequency) -> {
-                float idf = (float) Math.log10((double) totalDocuments / (frequency + 1));
-                String cacheKey = IDF_CACHE_PREFIX + term;
-                redisTemplate.opsForValue().set(cacheKey, idf, IDF_CACHE_EXPIRE, TimeUnit.SECONDS);
-            });
-
-            log.info("IDF缓存更新完成，共处理 {} 个词元", termDocumentFrequency.size());
-        } catch (Exception e) {
-            log.error("更新IDF缓存失败", e);
-        }
-    }
+//    @Scheduled(cron = "0 0 3 * * ?") // 每天凌晨3点执行
+//    public void updateIDFCache() {
+//        try {
+//            // 1. 获取所有文档的词元
+//            List<KbDocument> documents = documentMapper.selectList(null);
+//            long totalDocuments = documents.size();
+//
+//            // 2. 统计每个词出现在多少文档中
+//            Map<String, Long> termDocumentFrequency = new HashMap<>();
+//
+//            Properties props = new Properties();
+//            props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
+//            props.setProperty("coref.algorithm", "neural");
+//            StanfordCoreNLP nlpPipeline = new StanfordCoreNLP(props);
+//
+//            for (KbDocument doc : documents) {
+//                if (StringUtils.hasText(doc.getContent())) {
+//                    // 使用 nlpPipeline 处理文档
+//                    edu.stanford.nlp.pipeline.CoreDocument document = new edu.stanford.nlp.pipeline.CoreDocument(
+//                            doc.getContent());
+//                    nlpPipeline.annotate(document);
+//
+//                    // 获取文档中的唯一词元
+//                    Set<String> uniqueTerms = document.sentences().stream()
+//                            .flatMap(sentence -> sentence.lemmas().stream())
+//                            .collect(Collectors.toSet());
+//
+//                    // 更新词频统计
+//                    uniqueTerms.forEach(term -> termDocumentFrequency.merge(term, 1L, Long::sum));
+//                }
+//            }
+//
+//            // 3. 计算并缓存IDF值
+//            termDocumentFrequency.forEach((term, frequency) -> {
+//                float idf = (float) Math.log10((double) totalDocuments / (frequency + 1));
+//                String cacheKey = IDF_CACHE_PREFIX + term;
+//                redisTemplate.opsForValue().set(cacheKey, idf, IDF_CACHE_EXPIRE, TimeUnit.SECONDS);
+//            });
+//
+//            log.info("IDF缓存更新完成，共处理 {} 个词元", termDocumentFrequency.size());
+//        } catch (Exception e) {
+//            log.error("更新IDF缓存失败", e);
+//        }
+//    }
 
     @Override
     public Page<KbSearchVO> embeddingSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> excludeIds) {
+        // 使用ElasticsearchOperations根据关键词检索文档KbDocumentIndex
+        Criteria criteria = new Criteria().or("content").matches(query)
+                .or("title").matches(query);
+        Query searchQuery = CriteriaQuery.builder(criteria).withPageable(
+                Pageable.ofSize((int) page.getSize())).build();
+
+        SearchHits<KbDocumentIndex> searchHits = elasticsearchTemplate.search(searchQuery, KbDocumentIndex.class);
+
+        List<KbDocumentIndex> results = searchHits.getSearchHits().stream()
+                .map(SearchHit::getContent)
+                .collect(Collectors.toList());
+        Set<Long> docIds = new HashSet<>();
+        if (CollUtil.isNotEmpty(results)) {
+            docIds = results.stream().map(kbDocumentIndex -> Long.valueOf(kbDocumentIndex.getId())).collect(Collectors.toSet());
+        }
+
         // 1. 获取查询文本的向量表示
-        float[] queryVector = getQueryVector(query);
+        float[] queryVector = generateEmbeddingVector(query);
 
         // 2. 从向量数据库中检索相似文档块
-        List<KbDocumentVector> similarVectors = documentVectorMapper.findSimilarVectors(queryVector, kbIds,
+        List<KbDocumentVector> similarVectors = documentVectorMapper.findSimilarVectors(queryVector, kbIds, docIds,
                 page.getSize() * 3); // 获取更多结果以便后续处理
 
         // 3. 按文档ID分组，选择最相似的块
@@ -528,11 +580,12 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
             return vector;
 
         } catch (Exception e) {
-            log.error("OpenAI Embedding API调用失败: {}", e.getMessage());
+            log.error("Embedding API调用失败: {}", e.getMessage());
+            throw new BusinessException("Embedding API调用失败", e);
         }
 
-        // 降级方案：返回随机向量
-        return generateRandomVector(1536);
+//        // 降级方案：返回随机向量
+//        return generateRandomVector(embeddingConfig.getDimensions());
     }
 
     private float[] generateRandomVector(int dimension) {

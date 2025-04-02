@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 文档向量Mapper接口
@@ -20,11 +21,12 @@ public interface KbDocumentVectorMapper extends BaseMapper<KbDocumentVector> {
      *
      * @param queryVector 查询向量
      * @param kbIds       知识库ID列表
+     * @param docIds
      * @param limit       限制数量
      * @return 相似向量列表
      */
     List<KbDocumentVector> findSimilarVectors(@Param("queryVector") float[] queryVector,
-            @Param("kbIds") Long[] kbIds, @Param("limit") long limit);
+                                              @Param("kbIds") Long[] kbIds,@Param("docIds") Set<Long> docIds, @Param("limit") long limit);
 
     /**
      * 根据文档ID查询向量

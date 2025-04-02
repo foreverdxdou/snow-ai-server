@@ -6,7 +6,7 @@
     <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.KbChatHistory">
         <id column="id" property="id" />
         <result column="session_id" property="sessionId" />
-        <result column="kb_id" property="kbId" />
+        <result column="kb_ids" property="kbIds" />
         <result column="user_id" property="userId" />
         <result column="question" property="question" />
         <result column="answer" property="answer" />
@@ -17,11 +17,11 @@
     </resultMap>
 
     <!-- 通用查询结果列 -->
-    <sql id="Base_Column_List"> id, session_id, kb_id, user_id, question, answer, tokens_used,
+    <sql id="Base_Column_List"> id, session_id, kb_ids, user_id, question, answer, tokens_used,
         process_time, create_time, update_time </sql>
 
     <!-- 分页查询聊天历史列表 -->
-    <select id="selectChatHistoryList" resultType="com.dxdou.snowai.domain.vo.KbChatHistoryVO">
+    <select id="selectChatHistoryList" resultMap="BaseResultMap">
         SELECT h.id, h.knowledge_base_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
         user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
         JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
@@ -31,18 +31,27 @@
         h.create_time DESC </select>
 
     <!-- 根据ID查询聊天历史信息 -->
-    <select id="selectChatHistoryById" resultType="com.dxdou.snowai.domain.vo.KbChatHistoryVO">
+    <select id="selectChatHistoryById" resultMap="BaseResultMap">
         SELECT h.id, h.knowledge_base_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
         user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
         JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
         u.id WHERE h.id = #{id} AND h.deleted = 0 </select>
 
     <!-- 查询用户的聊天历史列表 -->
-    <select id="selectUserChatHistory" resultType="com.dxdou.snowai.domain.vo.KbChatHistoryVO">
-        SELECT h.id, h.knowledge_base_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
-        user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
-        JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
-        u.id WHERE h.user_id = #{userId} AND h.deleted = 0 ORDER BY h.create_time DESC </select>
+    <select id="selectUserChatHistory" resultMap="BaseResultMap">
+        SELECT ID,
+               kb_ids,
+               question,
+               answer,
+               session_id,
+               create_time
+        FROM
+            ( SELECT DISTINCT ON ( session_id ) ID, kb_ids, question, answer, session_id, create_time FROM kb_chat_history
+              WHERE user_id = #{userId}
+              ORDER BY session_id, create_time DESC ) T
+        ORDER BY
+            create_time DESC;
+    </select>
 
     <!-- 删除知识库的所有聊天历史 -->
     <update id="deleteByKnowledgeBaseId"> UPDATE kb_chat_history SET deleted = 1 WHERE

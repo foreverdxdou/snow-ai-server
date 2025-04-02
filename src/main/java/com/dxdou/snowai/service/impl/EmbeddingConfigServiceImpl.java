@@ -36,7 +36,7 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
         if (status != null) {
             wrapper.eq(EmbeddingConfig::getStatus, status);
         }
-        wrapper.orderByDesc(EmbeddingConfig::getCreateTime);
+        wrapper.orderByDesc(EmbeddingConfig::getStatus).orderByDesc(EmbeddingConfig::getCreateTime);
 
         Page<EmbeddingConfig> configPage = embeddingConfigMapper.selectPage(page, wrapper);
         Page<EmbeddingConfigVO> voPage = new Page<>(configPage.getCurrent(), configPage.getSize(),
@@ -121,7 +121,7 @@ public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
     @Override
     public EmbeddingConfigVO getEnabledEmbeddingConfig() {
         LambdaQueryWrapper<EmbeddingConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(EmbeddingConfig::getStatus, true);
+        wrapper.eq(EmbeddingConfig::getStatus, 1);
         EmbeddingConfig config = embeddingConfigMapper.selectOne(wrapper);
         if (config == null) {
             throw new BusinessException("未找到启用的Embedding模型配置");

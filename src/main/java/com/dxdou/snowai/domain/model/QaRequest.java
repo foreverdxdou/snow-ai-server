@@ -26,4 +26,7 @@ public class QaRequest {
 
     @Schema(description = "最大token数")
     private Integer maxTokens;
+
+    @Schema(description = "llm配置主键")
+    private Long llmId;
 }

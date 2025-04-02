@@ -5,9 +5,9 @@ import com.dxdou.snowai.domain.entity.KbChatHistory;
 import com.dxdou.snowai.domain.model.QaRequest;
 import com.dxdou.snowai.domain.model.QaResponse;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 /**
  * 知识库问答服务接口
@@ -81,5 +81,10 @@ public interface KbQaService {
      */
     void clearChatHistory(Long kbId);
 
-    Flux<ServerSentEvent<String>> streamChatGPTReply(String message);
+    /**
+     * 查询用户的对话历史
+     * @param userId
+     * @return
+     */
+    List<KbChatHistory> getUserChatHistory(Long userId);
 }

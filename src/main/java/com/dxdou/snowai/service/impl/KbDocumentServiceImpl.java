@@ -450,7 +450,6 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
     private void saveToElasticsearch(KbDocument document) {
         try {
             // 检查索引是否存在
-            String indexName = "kb_document";
             if (!elasticsearchTemplate.indexOps(KbDocumentIndex.class).exists()) {
                 // 创建索引
                 elasticsearchTemplate.indexOps(KbDocumentIndex.class).create();
@@ -462,8 +461,8 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
                 doc.setContent(document.getContent());
                 doc.setKbId(document.getKbId().toString());
                 doc.setCategoryId(document.getCategoryId() != null ? document.getCategoryId().toString() : null);
-                doc.setCreateTime(document.getCreateTime());
-                doc.setUpdateTime(document.getUpdateTime());
+                doc.setCreateTime(document.getCreateTime().toString());
+                doc.setUpdateTime(document.getUpdateTime().toString());
 
                 // 保存文档，会自动创建映射
                 elasticsearchTemplate.save(doc);
@@ -475,8 +474,8 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
                 doc.setContent(document.getContent());
                 doc.setKbId(document.getKbId().toString());
                 doc.setCategoryId(document.getCategoryId() != null ? document.getCategoryId().toString() : null);
-                doc.setCreateTime(document.getCreateTime());
-                doc.setUpdateTime(document.getUpdateTime());
+                doc.setCreateTime(document.getCreateTime().toString());
+                doc.setUpdateTime(document.getUpdateTime().toString());
 
                 // 保存到ES
                 elasticsearchTemplate.save(doc);

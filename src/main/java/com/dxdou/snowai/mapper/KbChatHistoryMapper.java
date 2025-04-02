@@ -3,7 +3,6 @@ package com.dxdou.snowai.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dxdou.snowai.domain.entity.KbChatHistory;
-import com.dxdou.snowai.domain.vo.KbChatHistoryVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -25,7 +24,7 @@ public interface KbChatHistoryMapper extends BaseMapper<KbChatHistory> {
      * @param userId          用户ID
      * @return 聊天历史列表
      */
-    Page<KbChatHistoryVO> selectChatHistoryList(Page<KbChatHistory> page,
+    Page<KbChatHistory> selectChatHistoryList(Page<KbChatHistory> page,
             @Param("knowledgeBaseId") Long knowledgeBaseId,
             @Param("userId") Long userId);
 
@@ -35,7 +34,7 @@ public interface KbChatHistoryMapper extends BaseMapper<KbChatHistory> {
      * @param id 聊天历史ID
      * @return 聊天历史信息
      */
-    KbChatHistoryVO selectChatHistoryById(@Param("id") Long id);
+    KbChatHistory selectChatHistoryById(@Param("id") Long id);
 
     /**
      * 查询用户的聊天历史列表
@@ -43,7 +42,7 @@ public interface KbChatHistoryMapper extends BaseMapper<KbChatHistory> {
      * @param userId 用户ID
      * @return 聊天历史列表
      */
-    List<KbChatHistoryVO> selectUserChatHistory(@Param("userId") Long userId);
+    List<KbChatHistory> selectUserChatHistory(@Param("userId") Long userId);
 
     /**
      * 删除知识库的所有聊天历史

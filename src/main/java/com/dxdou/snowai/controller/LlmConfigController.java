@@ -34,6 +34,15 @@ public class LlmConfigController {
         return R.ok(configVos);
     }
 
+    @Operation(summary = "获取可用的大模型配置")
+    @GetMapping("/enabled")
+    public R<List<LlmConfigVO>> getEnabledLlmConfig() {
+        List<LlmConfigVO> configVos = BeanUtil.copyToList(llmConfigService.list(Wrappers.lambdaQuery(LlmConfig.class)
+                .eq(LlmConfig::getEnabled, true)
+                .orderByDesc(LlmConfig::getCreateTime)), LlmConfigVO.class);
+        return R.ok(configVos);
+    }
+
     @Operation(summary = "获取指定大模型配置")
     @GetMapping("/{id}")
     public R<LlmConfigVO> getById(@Parameter(description = "配置ID") @PathVariable Long id) {

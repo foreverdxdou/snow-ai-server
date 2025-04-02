@@ -6,8 +6,6 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import java.time.LocalDateTime;
-
 @Data
 @Document(indexName = "kb_document")
 public class KbDocumentIndex {
@@ -28,8 +26,8 @@ public class KbDocumentIndex {
     private String categoryId;
 
     @Field(type = FieldType.Date)
-    private LocalDateTime createTime;
+    private String createTime;
 
     @Field(type = FieldType.Date)
-    private LocalDateTime updateTime;
+    private String updateTime;
 }

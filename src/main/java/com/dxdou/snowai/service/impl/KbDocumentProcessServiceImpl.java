@@ -22,9 +22,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class KbDocumentProcessServiceImpl implements KbDocumentProcessService {
-
-    private final StanfordCoreNLP nlpPipeline;
-
     @Override
     public String generateSummary(String content, int maxLength) {
         if (!StringUtils.hasText(content)) {
@@ -33,6 +30,11 @@ public class KbDocumentProcessServiceImpl implements KbDocumentProcessService {
 
         // 1. 对文本进行分词和分句
         Annotation document = new Annotation(content);
+
+        Properties props = new Properties();
+        props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
+        props.setProperty("coref.algorithm", "neural");
+        StanfordCoreNLP nlpPipeline = new StanfordCoreNLP(props);
         nlpPipeline.annotate(document);
         List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
 
@@ -65,6 +67,10 @@ public class KbDocumentProcessServiceImpl implements KbDocumentProcessService {
 
         // 1. 对文本进行分词和词性标注
         Annotation document = new Annotation(content);
+        Properties props = new Properties();
+        props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
+        props.setProperty("coref.algorithm", "neural");
+        StanfordCoreNLP nlpPipeline = new StanfordCoreNLP(props);
         nlpPipeline.annotate(document);
         List<CoreLabel> tokens = document.get(CoreAnnotations.TokensAnnotation.class);
 

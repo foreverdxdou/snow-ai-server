@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -19,6 +20,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.filter.CorsFilter;
+
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * Spring Security配置类
@@ -44,8 +47,6 @@ public class SecurityConfig {
                         .requestMatchers(SecurityConstants.EXCLUDED_URLS).permitAll()
                         .requestMatchers("/api/v1/kb/qa/chat/stream").permitAll() // SSE流式问答需要认证
                         .requestMatchers("/api/v1/kb/qa/general/stream").permitAll() // SSE通用流式问答需要认证
-                        .requestMatchers("/api/v1/kb/qa/stream1").permitAll() // SSE通用流式问答需要认证
-                        .requestMatchers("/api/v1/kb/qa/stream").permitAll() // SSE通用流式问答需要认证
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -55,22 +56,22 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(corsFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(corsFilter, LogoutFilter.class)
-//                .exceptionHandling(ex -> ex
-//                        .accessDeniedHandler((request, response, e) -> {
-//                            log.error("访问被拒绝: {}", e.getMessage());
-//                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-//                            response.setCharacterEncoding("UTF-8");
-//                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-//                            response.getWriter().write("{\"code\":403,\"message\":\"访问被拒绝\"}");
-//                        })
-//                        .authenticationEntryPoint((request, response, e) -> {
-//                            log.error("认证失败: {}", e.getMessage());
-//                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-//                            response.setCharacterEncoding("UTF-8");
-//                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-//                            response.getWriter().write("{\"code\":401,\"message\":\"认证失败\"}");
-//                        })
-//                )
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler((request, response, e) -> {
+                            log.error("访问被拒绝: {}", e.getMessage());
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.getWriter().write("{\"code\":403,\"message\":\"访问被拒绝\"}");
+                        })
+                        .authenticationEntryPoint((request, response, e) -> {
+                            log.error("认证失败: {}", e.getMessage());
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.setCharacterEncoding("UTF-8");
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("{\"code\":401,\"message\":\"认证失败\"}");
+                        })
+                )
         ;
 
         return http.build();

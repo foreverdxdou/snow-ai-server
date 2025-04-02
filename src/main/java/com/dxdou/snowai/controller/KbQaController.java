@@ -1,24 +1,23 @@
 package com.dxdou.snowai.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dxdou.snowai.common.R;
 import com.dxdou.snowai.domain.entity.KbChatHistory;
 import com.dxdou.snowai.domain.model.QaRequest;
 import com.dxdou.snowai.domain.model.QaResponse;
+import com.dxdou.snowai.domain.vo.KbChatHistoryVO;
+import com.dxdou.snowai.service.AuthService;
 import com.dxdou.snowai.service.KbQaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import reactor.core.publisher.Flux;
 
-import java.time.Duration;
+import java.util.List;
 
 /**
  * 知识库问答系统控制器
@@ -32,6 +31,7 @@ import java.time.Duration;
 public class KbQaController {
 
     private final KbQaService qaService;
+    private final AuthService authService;
 
     @Operation(summary = "知识库问答")
     @PostMapping("/chat")
@@ -63,11 +63,20 @@ public class KbQaController {
         return qaService.streamGeneralChat(request);
     }
 
+    @Operation(summary = "获取用户对话历史列表")
+    @GetMapping("/history/user")
+    public R<List<KbChatHistoryVO>> getUserChatHistory() {
+        return R.ok(BeanUtil.copyToList(qaService.getUserChatHistory(authService.getCurrentUser().getId()), KbChatHistoryVO.class));
+    }
+
     @Operation(summary = "获取对话历史")
     @GetMapping("/history")
-    public R<Page<KbChatHistory>> getChatHistory(
+    public R<Page<KbChatHistoryVO>> getChatHistory(
             @Parameter(description = "会话ID") @RequestParam String sessionId) {
-        return R.ok(qaService.getChatHistory(sessionId));
+        Page<KbChatHistory> page = qaService.getChatHistory(sessionId);
+        Page<KbChatHistoryVO> newPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        newPage.setRecords(BeanUtil.copyToList(page.getRecords(), KbChatHistoryVO.class));
+        return R.ok(newPage);
     }
 
     @Operation(summary = "清除对话历史")

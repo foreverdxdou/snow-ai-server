@@ -14,12 +14,7 @@ import com.dxdou.snowai.domain.model.QaRequest;
 import com.dxdou.snowai.domain.model.QaResponse;
 import com.dxdou.snowai.mapper.KbChatHistoryMapper;
 import com.dxdou.snowai.mapper.LlmTokenUsageMapper;
-import com.dxdou.snowai.service.AuthService;
-import com.dxdou.snowai.service.EmbeddingConfigService;
-import com.dxdou.snowai.service.KbQaService;
-import com.dxdou.snowai.service.KbSearchService;
-import com.dxdou.snowai.service.LlmConfigService;
-import com.dxdou.snowai.service.SystemConfigService;
+import com.dxdou.snowai.service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -36,10 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import reactor.core.publisher.Flux;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -78,7 +70,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         long startTime = System.currentTimeMillis();
         try {
             // 1. 获取默认的AI模型配置
-            LlmConfig model = getDefaultModel();
+            LlmConfig model = getDefaultModel(request.getLlmId());
 
             // 2. 检索相关文档
             List<KbDocument> relevantDocs = searchService
@@ -173,7 +165,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         CompletableFuture.runAsync(() -> {
             try {
                 // 1. 获取默认的AI模型配置
-                LlmConfig model = getDefaultModel();
+                LlmConfig model = getDefaultModel(request.getLlmId());
 
                 // 2. 获取系统配置，判断使用NLP还是Embedding
                 String searchType = systemConfigService.getConfigValue("kb.search.type", "NLP");
@@ -314,7 +306,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         long startTime = System.currentTimeMillis();
         try {
             // 1. 获取默认的AI模型配置
-            LlmConfig model = getDefaultModel();
+            LlmConfig model = getDefaultModel(request.getLlmId());
 
             // 2. 构建提示词
             String prompt = buildGeneralPrompt(request.getQuestion());
@@ -394,7 +386,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         CompletableFuture.runAsync(() -> {
             try {
                 // 1. 获取默认的AI模型配置
-                LlmConfig model = getDefaultModel();
+                LlmConfig model = getDefaultModel(request.getLlmId());
 
                 // 2. 构建提示词
                 String prompt = buildGeneralPrompt(request.getQuestion());
@@ -527,7 +519,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
     @Override
     public Page<KbChatHistory> getChatHistory(String sessionId) {
-        Page<KbChatHistory> page = new Page<>(1, 10);
+        Page<KbChatHistory> page = new Page<>(1, 100);
         LambdaQueryWrapper<KbChatHistory> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(KbChatHistory::getSessionId, sessionId).orderByDesc(KbChatHistory::getCreateTime);
         return chatHistoryMapper.selectPage(page, wrapper);
@@ -553,36 +545,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     }
 
     @Override
-    public Flux<ServerSentEvent<String>> streamChatGPTReply(String message) {
-        // 1. 获取默认的AI模型配置
-        LlmConfig model = getDefaultModel();
-
-        // 2. 构建提示词
-        String prompt = buildGeneralPrompt("人生的意义");
-
-        // 3. 构建请求体
-        Map<String, Object> requestBody = buildRequestBody(model, prompt);
-
-        // 4. 获取请求头
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + model.getApiKey());
-        // 使用 WebClient 异步调用外部 API
-        return webClient.post()
-                .uri(model.getApiUrl())
-                .headers(h -> {
-                    h.addAll(headers);
-                    // 添加必要的响应头
-                    h.setCacheControl("no-cache");
-                    h.setPragma("no-cache");
-                })
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToFlux(String.class) // 假设 API 返回 String 类型数据
-                .map(data -> ServerSentEvent.<String>builder()
-                        .data(data) // 将 API 响应数据包装到 SSE 事件中
-                        .build())
-                .delayElements(Duration.ofMillis(100));
+    public List<KbChatHistory> getUserChatHistory(Long userId) {
+        return chatHistoryMapper.selectUserChatHistory(userId);
     }
 
     /**
@@ -590,10 +554,13 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      *
      * @return AI模型配置
      */
-    private LlmConfig getDefaultModel() {
+    private LlmConfig getDefaultModel(Long llmId) {
         // 1. 查询启用的模型配置
         LambdaQueryWrapper<LlmConfig> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(LlmConfig::getEnabled, true);
+        if (null != llmId) {
+            wrapper.eq(LlmConfig::getId, llmId);
+        }
         List<LlmConfig> models = llmConfigService.list(wrapper);
 
         if (models.isEmpty()) {
