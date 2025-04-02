@@ -37,6 +37,11 @@ public class LlmConfig {
     private String apiKey;
 
     /**
+     * 模型类型
+     */
+    private String modelType;
+
+    /**
      * 是否启用
      */
     private Boolean enabled;

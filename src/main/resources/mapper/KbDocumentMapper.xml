@@ -49,7 +49,6 @@
         SELECT
         d.ID,
         d.title,
-        d.CONTENT,
         d.file_type,
         d.file_size,
         d.file_url,

@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -67,7 +68,7 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
         // 使用ElasticsearchOperations根据关键词检索文档KbDocumentIndex
         Criteria criteria = new Criteria().or("content").contains(query)
                 .or("title").contains(query);
-                ; // 假设在 content 字段中搜索
+        ; // 假设在 content 字段中搜索
         Query searchQuery = CriteriaQuery.builder(criteria).withPageable(
                 Pageable.ofSize((int) page.getSize())).build();
 
@@ -568,12 +569,21 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
                     .body();
             log.info("Embedding API调用结果: {}", response);
 
+            List<BigDecimal> embeddingList = new ArrayList<>();
             // 解析响应
             JSONObject responseJson = JSON.parseObject(response);
-            List<Double> embeddingList = responseJson.getJSONArray("data").getJSONObject(0).getJSONArray("embedding");
+            if (responseJson.containsKey("data")) {
+                embeddingList = responseJson.getJSONArray("data").getJSONObject(0).getJSONArray("embedding");
+            } else if (responseJson.containsKey("embeddings")) {
+                embeddingList = responseJson.getJSONArray("embeddings").getJSONArray(0);
+            }
 
+            int dimensions = embeddingList.size();
+            if (dimensions < 1536) {
+                dimensions = 1536;
+            }
             // 转换List<Double>为float[]
-            float[] vector = new float[embeddingList.size()];
+            float[] vector = new float[dimensions];
             for (int i = 0; i < embeddingList.size(); i++) {
                 vector[i] = embeddingList.get(i).floatValue();
             }
