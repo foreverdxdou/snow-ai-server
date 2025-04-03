@@ -9,6 +9,7 @@ import com.dxdou.snowai.domain.vo.KbTagVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -80,4 +81,37 @@ public interface KbDocumentMapper extends BaseMapper<KbDocument> {
      * @return 标签信息列表
      */
     List<KbTagVO> selectDocumentTags(@Param("documentId") Long documentId);
+
+    /**
+     * 根据解析状态统计文档数量
+     *
+     * @param status 解析状态
+     * @return 文档数量
+     */
+    long countByParseStatus(@Param("status") Integer status);
+
+    /**
+     * 统计指定时间之后创建的文档数量
+     *
+     * @param time 时间
+     * @return 文档数量
+     */
+    long countByCreateTimeAfter(@Param("time") LocalDateTime time);
+
+    /**
+     * 获取最新的文档列表
+     *
+     * @param limit 数量限制
+     * @return 文档列表
+     */
+    List<KbDocument> selectLatestDocs(@Param("limit") int limit);
+
+    /**
+     * 获取文档增长趋势
+     *
+     * @param startTime 开始时间
+     * @param endTime   结束时间
+     * @return 每日新增数量列表
+     */
+    List<Long> selectDocTrend(@Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 }

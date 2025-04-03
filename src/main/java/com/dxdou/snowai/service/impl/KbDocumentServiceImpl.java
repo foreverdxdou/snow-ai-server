@@ -170,7 +170,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
 
     @Override
     public IPage<KbDocumentVO> getDocumentPage(Page<KbDocument> page, String title, Long kbId, Long categoryId,
-                                               Long creatorId, Integer status) {
+            Long creatorId, Integer status) {
         return documentMapper.selectDocumentList(page, title, kbId, categoryId, creatorId, status);
     }
 
@@ -518,5 +518,25 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         BeanUtils.copyProperties(document, vo);
         // TODO: 设置其他属性（如分类名称、知识库名称、创建者名称等）
         return vo;
+    }
+
+    @Override
+    public long countByParseStatus(Integer status) {
+        return documentMapper.countByParseStatus(status);
+    }
+
+    @Override
+    public long countByCreateTimeAfter(LocalDateTime time) {
+        return documentMapper.countByCreateTimeAfter(time);
+    }
+
+    @Override
+    public List<KbDocument> getLatestDocs(int limit) {
+        return documentMapper.selectLatestDocs(limit);
+    }
+
+    @Override
+    public List<Long> getDocTrend(LocalDateTime startTime, LocalDateTime endTime) {
+        return documentMapper.selectDocTrend(startTime, endTime);
     }
 }

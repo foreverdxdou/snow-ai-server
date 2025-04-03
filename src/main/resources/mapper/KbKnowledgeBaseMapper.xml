@@ -69,4 +69,37 @@
     <select id="selectDocumentCount" resultType="java.lang.Integer"> SELECT COUNT(*) FROM
         kb_document WHERE kb_id = #{kbId} AND deleted = 0 </select>
 
+    <!-- 根据状态统计知识库数量 -->
+    <select id="countByStatus" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM kb_knowledge_base
+        WHERE deleted = 0
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <!-- 统计指定时间之后创建的知识库数量 -->
+    <select id="countByCreateTimeAfter" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM kb_knowledge_base
+        WHERE deleted = 0
+        AND create_time > #{time}
+    </select>
+
+    <!-- 获取最新的知识库列表 -->
+    <select id="selectLatestKbs" resultMap="BaseResultMap">
+        SELECT * FROM kb_knowledge_base
+        WHERE deleted = 0
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取知识库增长趋势 -->
+    <select id="selectKbTrend" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM kb_knowledge_base
+        WHERE deleted = 0
+        AND create_time BETWEEN #{startTime} AND #{endTime}
+        GROUP BY DATE(create_time)
+        ORDER BY DATE(create_time)
+    </select>
+
 </mapper>

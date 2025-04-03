@@ -34,7 +34,7 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
 
     @Override
     public Page<KbKnowledgeBaseVO> getKnowledgeBasePage(Page<KbKnowledgeBase> page, String name, Long creatorId,
-                                                        Integer status, Long categoryId) {
+            Integer status, Long categoryId) {
         return knowledgeBaseMapper.selectKnowledgeBaseList(page, name, creatorId, status, categoryId);
     }
 
@@ -197,5 +197,25 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
         return knowledgeBaseMapper.selectCount(new LambdaQueryWrapper<KbKnowledgeBase>()
                 .eq(KbKnowledgeBase::getName, name)
                 .eq(KbKnowledgeBase::getDeleted, 0)) > 0;
+    }
+
+    @Override
+    public long countByStatus(Integer status) {
+        return knowledgeBaseMapper.countByStatus(status);
+    }
+
+    @Override
+    public long countByCreateTimeAfter(LocalDateTime time) {
+        return knowledgeBaseMapper.countByCreateTimeAfter(time);
+    }
+
+    @Override
+    public List<KbKnowledgeBase> getLatestKbs(int limit) {
+        return knowledgeBaseMapper.selectLatestKbs(limit);
+    }
+
+    @Override
+    public List<Long> getKbTrend(LocalDateTime startTime, LocalDateTime endTime) {
+        return knowledgeBaseMapper.selectKbTrend(startTime, endTime);
     }
 }

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.dxdou.snowai.domain.entity.KbKnowledgeBase;
 import com.dxdou.snowai.domain.vo.KbKnowledgeBaseVO;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -25,7 +26,7 @@ public interface KbKnowledgeBaseService extends IService<KbKnowledgeBase> {
      * @return 知识库列表
      */
     Page<KbKnowledgeBaseVO> getKnowledgeBasePage(Page<KbKnowledgeBase> page, String name, Long creatorId,
-                                                 Integer status, Long categoryId);
+            Integer status, Long categoryId);
 
     /**
      * 根据ID查询知识库信息
@@ -99,4 +100,37 @@ public interface KbKnowledgeBaseService extends IService<KbKnowledgeBase> {
      * @return 是否有权限
      */
     boolean hasPermission(Long userId, Long kbId, Integer permissionType);
+
+    /**
+     * 根据状态统计知识库数量
+     *
+     * @param status 状态
+     * @return 知识库数量
+     */
+    long countByStatus(Integer status);
+
+    /**
+     * 统计指定时间之后创建的知识库数量
+     *
+     * @param time 时间
+     * @return 知识库数量
+     */
+    long countByCreateTimeAfter(LocalDateTime time);
+
+    /**
+     * 获取最新的知识库列表
+     *
+     * @param limit 数量限制
+     * @return 知识库列表
+     */
+    List<KbKnowledgeBase> getLatestKbs(int limit);
+
+    /**
+     * 获取知识库增长趋势
+     *
+     * @param startTime 开始时间
+     * @param endTime   结束时间
+     * @return 每日新增数量列表
+     */
+    List<Long> getKbTrend(LocalDateTime startTime, LocalDateTime endTime);
 }

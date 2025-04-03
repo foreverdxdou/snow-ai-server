@@ -127,4 +127,37 @@ WHERE
 
     <update id="updateDocumentVersion"> UPDATE kb_document SET version = #{version} WHERE id = #{id} </update>
 
+    <!-- 根据解析状态统计文档数量 -->
+    <select id="countByParseStatus" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM kb_document
+        WHERE deleted = 0
+        <if test="status != null">
+            AND parse_status = #{status}
+        </if>
+    </select>
+
+    <!-- 统计指定时间之后创建的文档数量 -->
+    <select id="countByCreateTimeAfter" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM kb_document
+        WHERE deleted = 0
+        AND create_time > #{time}
+    </select>
+
+    <!-- 获取最新的文档列表 -->
+    <select id="selectLatestDocs" resultMap="BaseResultMap">
+        SELECT * FROM kb_document
+        WHERE deleted = 0
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取文档增长趋势 -->
+    <select id="selectDocTrend" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM kb_document
+        WHERE deleted = 0
+        AND create_time BETWEEN #{startTime} AND #{endTime}
+        GROUP BY DATE(create_time)
+        ORDER BY DATE(create_time)
+    </select>
+
 </mapper>

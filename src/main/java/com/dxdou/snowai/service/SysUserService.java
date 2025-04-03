@@ -36,7 +36,8 @@ public interface SysUserService extends IService<SysUser> {
      * @param nickName
      * @return 用户列表
      */
-    Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId, String email, String phone, String nickName);
+    Page<SysUserVO> getUserPage(Page<SysUser> page, String username, Integer status, Long deptId, String email,
+            String phone, String nickName);
 
     /**
      * 创建用户
@@ -116,4 +117,12 @@ public interface SysUserService extends IService<SysUser> {
      * @return 权限列表
      */
     List<SysPermission> getUserPermissions(Long userId);
+
+    /**
+     * 根据用户ID获取用户昵称
+     *
+     * @param userId 用户ID
+     * @return 用户昵称
+     */
+    String getNicknameById(Long userId);
 }

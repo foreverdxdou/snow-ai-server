@@ -35,6 +35,15 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
      * @return 用户列表
      */
     Page<SysUserVO> selectUserList(Page<SysUser> page, @Param("username") String username,
-                                   @Param("status") Integer status, @Param("deptId") Long deptId, @Param("email") String email, @Param("phone") String phone, @Param("nickName") String nickName);
+            @Param("status") Integer status, @Param("deptId") Long deptId, @Param("email") String email,
+            @Param("phone") String phone, @Param("nickName") String nickName);
+
+    /**
+     * 根据用户ID获取用户昵称
+     *
+     * @param userId 用户ID
+     * @return 用户昵称
+     */
+    String selectNicknameById(@Param("userId") Long userId);
 
 }
