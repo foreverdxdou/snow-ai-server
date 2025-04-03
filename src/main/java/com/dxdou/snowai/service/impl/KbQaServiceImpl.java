@@ -285,7 +285,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         return emitter;
     }
 
-    private void sendRequestForStream(QaRequest request, AtomicBoolean isCompleted, SseEmitter emitter, StringBuilder answer, List<KbDocument> relevantDocs) {
+    private void sendRequestForStream(QaRequest request, AtomicBoolean isCompleted, SseEmitter emitter,
+                                      StringBuilder answer, List<KbDocument> relevantDocs) {
         try {
             // 1. 获取默认的AI模型配置
             LlmConfig model = getDefaultModel(request.getLlmId());
@@ -322,83 +323,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         if (isCompleted.get()) {
                             return;
                         }
-
-                        try {
-                            if ("[DONE]".equals(chunk)) {
-                                if (!isCompleted.get()) {
-                                    emitter.send(SseEmitter.event()
-                                            .id(String.valueOf(System.currentTimeMillis()))
-                                            .name("done")
-                                            .data("[DONE]")
-                                            .build());
-                                }
-                                return;
-                            }
-
-                            Map<String, Object> chunkResponse = parseJson(chunk);
-                            if (chunkResponse != null) {
-                                if (chunkResponse.containsKey("response")) {
-                                    if (chunkResponse.containsKey("done")) {
-                                        if ((Boolean) chunkResponse.get("done")) {
-                                            if (!isCompleted.get()) {
-                                                emitter.send(SseEmitter.event()
-                                                        .id(String.valueOf(System.currentTimeMillis()))
-                                                        .name("done")
-                                                        .data("[DONE]")
-                                                        .build());
-                                            }
-                                        }
-                                    }
-                                    String response = (String) chunkResponse.get("response");
-                                    if (StringUtils.isNotBlank(response)) {
-                                        answer.append(response);
-                                        emitter.send(SseEmitter.event()
-                                                .id(String.valueOf(System.currentTimeMillis()))
-                                                .name("answer")
-                                                .data(response)
-                                                .build());
-                                    }
-                                }
-                                if (chunkResponse.containsKey("choices")) {
-                                    @SuppressWarnings("unchecked")
-                                    List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse
-                                            .get("choices");
-                                    if (!choices.isEmpty()) {
-                                        Map<String, Object> choice = choices.get(0);
-                                        if (choice.containsKey("delta") && choice.get("delta") instanceof Map) {
-                                            @SuppressWarnings("unchecked")
-                                            Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
-                                            if (delta.containsKey("content")) {
-                                                String content = (String) delta.get("content");
-                                                if (StringUtils.isNotBlank(content)) {
-                                                }
-                                                answer.append(content);
-                                                if (!isCompleted.get()) {
-                                                    emitter.send(SseEmitter.event()
-                                                            .id(String.valueOf(System.currentTimeMillis()))
-                                                            .name("message")
-                                                            .data(content)
-                                                            .build());
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.error("Error processing chunk", e);
-                            if (!isCompleted.get()) {
-                                try {
-                                    emitter.send(SseEmitter.event()
-                                            .id(String.valueOf(System.currentTimeMillis()))
-                                            .name("error")
-                                            .data("Error processing chunk: " + e.getMessage())
-                                            .build());
-                                } catch (IOException ex) {
-                                    log.error("Error sending error event", ex);
-                                }
-                            }
-                        }
+                        processStreamResponse(chunk, isCompleted, emitter, answer, model);
                     })
                     .doOnComplete(() -> {
                         if (!isCompleted.get()) {
@@ -442,6 +367,186 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                     emitter.complete();
                 } catch (IOException ex) {
                     log.error("Error sending error event", ex);
+                }
+            }
+        }
+    }
+
+    private void processStreamResponse(String chunk, AtomicBoolean isCompleted, SseEmitter emitter,
+                                       StringBuilder answer, LlmConfig model) {
+        try {
+            if ("[DONE]".equals(chunk)) {
+                if (!isCompleted.get()) {
+                    emitter.send(SseEmitter.event()
+                            .id(String.valueOf(System.currentTimeMillis()))
+                            .name("done")
+                            .data("[DONE]")
+                            .build());
+                }
+                return;
+            }
+
+            Map<String, Object> chunkResponse = parseJson(chunk);
+            if (chunkResponse == null) {
+                return;
+            }
+
+            // switch (model.getModelProvider().toLowerCase()) {
+            //     case "openai":
+            //     case "anthropic":
+            //     case "google":
+            //     case "meta":
+            //     case "microsoft":
+            //     case "amazon":
+            //     case "baidu":
+            //     case "alibaba":
+            //     case "tencent":
+            //     case "zhipu":
+            //     case "minimax":
+            //     case "moonshot":
+            //     case "deepseek":
+            //     case "other":
+            //     default:
+            //         processDefaultResponse(chunkResponse, isCompleted, emitter, answer);
+            //         break;
+            // }
+
+            // 根据模型类型处理响应
+            if ("GENERAL".equals(model.getModelType())) {
+                processDefaultResponse(chunkResponse, isCompleted, emitter, answer);
+            } else if ("REASONING".equals(model.getModelType())) {
+                processReasoningModelResponse(chunkResponse, isCompleted, emitter, answer);
+            } else {
+                // 默认处理方式
+                processDefaultResponse(chunkResponse, isCompleted, emitter, answer);
+            }
+        } catch (Exception e) {
+            log.error("处理流式响应失败", e);
+            if (!isCompleted.get()) {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .id(String.valueOf(System.currentTimeMillis()))
+                            .name("error")
+                            .data("处理响应失败: " + e.getMessage())
+                            .build());
+                } catch (IOException ex) {
+                    log.error("发送错误事件失败", ex);
+                }
+            }
+        }
+    }
+
+
+    public static final String[] choiceMsgs = {"message", "delta"};
+    public static final String reasoningCol = "reasoning_content";
+    public static final String reasoningEvent = "reasoning";
+    public static final String contentCol = "content";
+    public static final String choicesCol = "choices";
+
+    /**
+     * 处理推理模型的流式响应
+     * 推理模型通常返回结构化的推理过程和结论
+     */
+    private void processReasoningModelResponse(Map<String, Object> chunkResponse, AtomicBoolean isCompleted,
+                                               SseEmitter emitter, StringBuilder answer) throws IOException {
+        // 处理标准OpenAI格式的响应
+        if (chunkResponse.containsKey(choicesCol)) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse.get(choicesCol);
+            if (!choices.isEmpty()) {
+                Map<String, Object> choice = choices.get(0);
+                for (String choiceMsg : choiceMsgs) {
+                    if (choice.containsKey(choiceMsg) && choice.get(choiceMsg) instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> delta = (Map<String, Object>) choice.get(choiceMsg);
+                        if (delta.containsKey(reasoningCol) && delta.get(reasoningCol) != null && StringUtils.isNotBlank(delta.get(reasoningCol).toString())) {
+                            String content = (String) delta.get(reasoningCol);
+                            if (StringUtils.isNotBlank(content)) {
+                                answer.append(content);
+                                if (!isCompleted.get()) {
+                                    emitter.send(SseEmitter.event()
+                                            .id(String.valueOf(System.currentTimeMillis()))
+                                            .name(reasoningEvent)
+                                            .data(content)
+                                            .build());
+                                }
+                            }
+                        }
+                        if (delta.containsKey(contentCol) && (!delta.containsKey(reasoningCol) || delta.get(reasoningCol) == null)) {
+                            String content = (String) delta.get(contentCol);
+                            if (StringUtils.isNotBlank(content)) {
+                                answer.append(content);
+                                if (!isCompleted.get()) {
+                                    emitter.send(SseEmitter.event()
+                                            .id(String.valueOf(System.currentTimeMillis()))
+                                            .name(choiceMsgs[0])
+                                            .data(content)
+                                            .build());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // 如果响应中没有reasoning字段，使用默认处理方式
+            processDefaultResponse(chunkResponse, isCompleted, emitter, answer);
+        }
+    }
+
+    /**
+     * 默认的响应处理方式
+     */
+    private void processDefaultResponse(Map<String, Object> chunkResponse, AtomicBoolean isCompleted,
+                                        SseEmitter emitter, StringBuilder answer) throws IOException {
+        // 处理标准OpenAI格式的响应
+        if (chunkResponse.containsKey(choicesCol)) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) chunkResponse.get(choicesCol);
+            if (!choices.isEmpty()) {
+                Map<String, Object> choice = choices.get(0);
+                if (choice.containsKey(choiceMsgs[1]) && choice.get(choiceMsgs[1]) instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> delta = (Map<String, Object>) choice.get(choiceMsgs[1]);
+                    if (delta.containsKey(contentCol)) {
+                        String content = (String) delta.get(contentCol);
+                        if (StringUtils.isNotBlank(content)) {
+                            answer.append(content);
+                            if (!isCompleted.get()) {
+                                emitter.send(SseEmitter.event()
+                                        .id(String.valueOf(System.currentTimeMillis()))
+                                        .name(choiceMsgs[0])
+                                        .data(content)
+                                        .build());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 处理其他可能的响应格式
+        if (chunkResponse.containsKey("response")) {
+            if (chunkResponse.containsKey("done")) {
+                if ((Boolean) chunkResponse.get("done")) {
+                    if (!isCompleted.get()) {
+                        emitter.send(SseEmitter.event()
+                                .id(String.valueOf(System.currentTimeMillis()))
+                                .name("done")
+                                .data("[DONE]")
+                                .build());
+                    }
+                }
+            }
+            String response = (String) chunkResponse.get("response");
+            if (StringUtils.isNotBlank(response)) {
+                answer.append(response);
+                if (!isCompleted.get()) {
+                    emitter.send(SseEmitter.event()
+                            .id(String.valueOf(System.currentTimeMillis()))
+                            .name(choiceMsgs[0])
+                            .data(response)
+                            .build());
                 }
             }
         }
@@ -566,7 +671,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
         // 5. 获取回答和token使用情况
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> choicesList = (List<Map<String, Object>>) response.get("choices");
+        List<Map<String, Object>> choicesList = (List<Map<String, Object>>) response.get(choicesCol);
         if (choicesList == null || choicesList.isEmpty()) {
             throw new BusinessException("AI模型响应格式错误");
         }
@@ -594,8 +699,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param callback 回调函数
      */
     private void streamCallAiModel(LlmConfig model, String prompt, HttpServletResponse servletResponse,
-            SseEmitter emitter,
-            java.util.function.Consumer<String> callback) {
+                                   SseEmitter emitter,
+                                   java.util.function.Consumer<String> callback) {
         servletResponse.setContentType("text/event-stream");
         servletResponse.setHeader("Cache-Control", "no-cache");
         servletResponse.setHeader("content-encoding", "br");
@@ -608,8 +713,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         // 2. 构建请求体
         JSONObject requestBody = new JSONObject();
         requestBody.put("model", model.getModelCode());
-        requestBody.put("messages", new JSONObject[] { new JSONObject().put("role", "system").put("content", ""),
-                new JSONObject().put("role", "user").put("content", prompt) });
+        requestBody.put("messages", new JSONObject[]{new JSONObject().put("role", "system").put(contentCol, ""),
+                new JSONObject().put("role", "user").put(contentCol, prompt)});
         requestBody.put("temperature", 0.7);
         requestBody.put("max_tokens", 2000);
         requestBody.put("stream", true);
@@ -647,16 +752,16 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         }
 
                         Map<String, Object> response = parseJson(chunk);
-                        if (response != null && response.containsKey("choices")) {
+                        if (response != null && response.containsKey(choicesCol)) {
                             @SuppressWarnings("unchecked")
-                            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
+                            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get(choicesCol);
                             if (!choices.isEmpty()) {
                                 Map<String, Object> choice = choices.get(0);
-                                if (choice.containsKey("delta") && choice.get("delta") instanceof Map) {
+                                if (choice.containsKey(choiceMsgs[1]) && choice.get(choiceMsgs[1]) instanceof Map) {
                                     @SuppressWarnings("unchecked")
-                                    Map<String, Object> delta = (Map<String, Object>) choice.get("delta");
-                                    if (delta.containsKey("content")) {
-                                        String content = (String) delta.get("content");
+                                    Map<String, Object> delta = (Map<String, Object>) choice.get(choiceMsgs[1]);
+                                    if (delta.containsKey(contentCol)) {
+                                        String content = (String) delta.get(contentCol);
                                         log.info("streamCallAiModel content: " + content);
                                         callback.accept(content);
                                     }
@@ -722,7 +827,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param processTime 处理时间
      */
     private void saveChatHistory(String sessionId, Long[] kbIds, String question, String answer, Long modelId,
-            long processTime) {
+                                 long processTime) {
         KbChatHistory history = new KbChatHistory();
         history.setSessionId(sessionId);
         history.setKbIds(kbIds != null && kbIds.length > 0 ? CollUtil.join(Arrays.asList(kbIds), ",") : null);
@@ -757,8 +862,9 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                 requestBody.put("stream", true);
                 break;
             default:
-                requestBody.put("messages", new JSONObject[] { new JSONObject().put("role", "system").put("content", ""),
-                        new JSONObject().put("role", "user").put("content", prompt) });
+                requestBody.put("messages",
+                        new JSONObject[]{new JSONObject().put("role", "system").put(contentCol, ""),
+                                new JSONObject().put("role", "user").put(contentCol, prompt)});
                 requestBody.put("temperature", 0.7);
                 requestBody.put("max_tokens", 2000);
                 requestBody.put("stream", true);

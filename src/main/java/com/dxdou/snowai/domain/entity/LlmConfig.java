@@ -42,9 +42,14 @@ public class LlmConfig {
     private String modelCode;
 
     /**
-     * 模型提供者
+     * 模型提供者 openai,anthropic,google,meta,microsoft,amazon,baidu,alibaba,tencent,zhipu,minimax,moonshot,deepseek,other
      */
     private String modelProvider;
+
+    /**
+     * 模型类型 GENERAL: 通用 REASONING: 推理
+     */
+    private String modelType;
 
     /**
      * 是否启用

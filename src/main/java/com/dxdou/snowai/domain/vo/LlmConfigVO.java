@@ -34,14 +34,22 @@ public class LlmConfigVO {
     /**
      * 模型提供者
      */
-    @Schema(description = "模型提供者")
+    @Schema(description = "模型提供者 openai,anthropic,google,meta,microsoft,amazon,baidu,alibaba,tencent,zhipu,minimax,moonshot,deepseek,other")
     private String modelProvider;
+
+    /**
+     * 模型类型 1: 通用 2: 推理
+     */
+    @Schema(description = "模型类型 1: 通用 2: 推理")
+    private String modelType;
 
     /**
      * API地址
      */
     @Schema(description = "API地址")
     private String apiUrl;
+
+    private String apiKey;
 
     /**
      * 是否启用
