@@ -462,11 +462,15 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         if (delta.containsKey(reasoningCol) && delta.get(reasoningCol) != null && StringUtils.isNotBlank(delta.get(reasoningCol).toString())) {
                             String content = (String) delta.get(reasoningCol);
                             if (StringUtils.isNotBlank(content)) {
+                                if (answer.isEmpty()) {
+                                    content = "<think>" + content;
+                                }
                                 answer.append(content);
                                 if (!isCompleted.get()) {
+                                    log.info("推理过程: " + content);
                                     emitter.send(SseEmitter.event()
                                             .id(String.valueOf(System.currentTimeMillis()))
-                                            .name(reasoningEvent)
+                                            .name(choiceMsgs[0])
                                             .data(content)
                                             .build());
                                 }
@@ -475,7 +479,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         if (delta.containsKey(contentCol) && (!delta.containsKey(reasoningCol) || delta.get(reasoningCol) == null)) {
                             String content = (String) delta.get(contentCol);
                             if (StringUtils.isNotBlank(content)) {
+                                if (!answer.isEmpty() && answer.toString().contains("<think>") && !answer.toString().contains("</think>")) {
+                                    content = "</think>" + content;
+                                }
                                 answer.append(content);
+                                log.info("结论: " + content);
                                 if (!isCompleted.get()) {
                                     emitter.send(SseEmitter.event()
                                             .id(String.valueOf(System.currentTimeMillis()))
