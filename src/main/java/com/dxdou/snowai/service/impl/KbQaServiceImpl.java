@@ -549,7 +549,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
         // 2. 构建请求体
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", model.getModelName());
+        requestBody.put("model", model.getModelCode());
         requestBody.put("prompt", prompt);
         requestBody.put("temperature", 0.7);
         requestBody.put("max_tokens", 2000);
@@ -607,7 +607,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
         // 2. 构建请求体
         JSONObject requestBody = new JSONObject();
-        requestBody.put("model", model.getModelName());
+        requestBody.put("model", model.getModelCode());
         requestBody.put("messages", new JSONObject[] { new JSONObject().put("role", "system").put("content", ""),
                 new JSONObject().put("role", "user").put("content", prompt) });
         requestBody.put("temperature", 0.7);
@@ -750,8 +750,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
     private Map<String, Object> buildRequestBody(LlmConfig model, String prompt) {
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", model.getModelName());
-        switch (model.getModelType()) {
+        requestBody.put("model", model.getModelCode());
+        switch (model.getModelProvider()) {
             case "ollama":
                 requestBody.put("prompt", prompt);
                 requestBody.put("stream", true);

@@ -26,6 +26,18 @@ public class LlmConfigVO {
     private String modelName;
 
     /**
+     * 模型编码
+     */
+    @Schema(description = "模型编码")
+    private String modelCode;
+
+    /**
+     * 模型提供者
+     */
+    @Schema(description = "模型提供者")
+    private String modelProvider;
+
+    /**
      * API地址
      */
     @Schema(description = "API地址")

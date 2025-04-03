@@ -37,9 +37,14 @@ public class LlmConfig {
     private String apiKey;
 
     /**
-     * 模型类型
+     * 模型编码
      */
-    private String modelType;
+    private String modelCode;
+
+    /**
+     * 模型提供者
+     */
+    private String modelProvider;
 
     /**
      * 是否启用

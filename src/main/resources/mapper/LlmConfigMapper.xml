@@ -6,6 +6,8 @@
     <resultMap id="BaseResultMap" type="com.dxdou.snowai.domain.entity.LlmConfig">
         <id column="id" property="id" />
         <result column="model_name" property="modelName" />
+        <result column="model_code" property="modelCode" />
+        <result column="model_provider" property="modelProvider" />
         <result column="api_url" property="apiUrl" />
         <result column="api_key" property="apiKey" />
         <result column="enabled" property="enabled" />
@@ -14,6 +16,6 @@
     </resultMap>
 
     <!-- 通用查询结果列 -->
-    <sql id="Base_Column_List"> id, model_name, api_url, api_key, enabled, create_time, update_time </sql>
+    <sql id="Base_Column_List"> id, model_name, model_code, model_provider, api_url, api_key, enabled, create_time, update_time </sql>
 
 </mapper> 
