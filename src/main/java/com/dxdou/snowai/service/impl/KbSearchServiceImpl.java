@@ -3,6 +3,7 @@ package com.dxdou.snowai.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -35,7 +36,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -569,13 +569,27 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
                     .body();
             log.info("Embedding API调用结果: {}", response);
 
-            List<BigDecimal> embeddingList = new ArrayList<>();
+            List<Double> embeddingList = new ArrayList<>();
             // 解析响应
             JSONObject responseJson = JSON.parseObject(response);
             if (responseJson.containsKey("data")) {
-                embeddingList = responseJson.getJSONArray("data").getJSONObject(0).getJSONArray("embedding");
+                // 处理"data"字段的情况
+                JSONArray dataArray = responseJson.getJSONArray("data");
+                if (dataArray != null && !dataArray.isEmpty()) {
+                    JSONArray embeddingArray = dataArray.getJSONObject(0).getJSONArray("embedding");
+                    if (embeddingArray != null) {
+                        embeddingList = embeddingArray.toJavaList(Double.class);
+                    }
+                }
             } else if (responseJson.containsKey("embeddings")) {
-                embeddingList = responseJson.getJSONArray("embeddings").getJSONArray(0);
+                // 处理"embeddings"字段的情况
+                JSONArray embeddingsArray = responseJson.getJSONArray("embeddings");
+                if (embeddingsArray != null && !embeddingsArray.isEmpty()) {
+                    JSONArray embeddingArray = embeddingsArray.getJSONArray(0);
+                    if (embeddingArray != null) {
+                        embeddingList = embeddingArray.toJavaList(Double.class);
+                    }
+                }
             }
 
             int dimensions = embeddingList.size();

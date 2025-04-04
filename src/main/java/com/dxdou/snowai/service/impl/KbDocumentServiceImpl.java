@@ -16,7 +16,6 @@ import com.dxdou.snowai.domain.vo.KbDocumentVersionVO;
 import com.dxdou.snowai.domain.vo.KbTagVO;
 import com.dxdou.snowai.mapper.KbDocumentMapper;
 import com.dxdou.snowai.mapper.KbDocumentTagMapper;
-import com.dxdou.snowai.mapper.KbDocumentVectorMapper;
 import com.dxdou.snowai.mapper.KbDocumentVersionMapper;
 import com.dxdou.snowai.service.KbDocumentService;
 import com.dxdou.snowai.service.KbSearchService;
@@ -40,7 +39,6 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,6 +50,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  * 知识库文档服务实现类
@@ -66,11 +66,11 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
     private final KbDocumentMapper documentMapper;
     private final KbDocumentVersionMapper documentVersionMapper;
     private final KbDocumentTagMapper documentTagMapper;
-    private final KbDocumentVectorMapper documentVectorMapper;
     private final MinioService minioService;
     private final KbSearchService searchService;
     private final SystemConfigService systemConfigService;
     private final ElasticsearchOperations elasticsearchTemplate;
+    private final Executor asyncExecutor;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -118,7 +118,10 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
             }
 
             // 4. 异步处理文档解析
-            processDocumentAsync(document.getId());
+            CompletableFuture.runAsync(() -> {
+                processDocumentAsync(document.getId());
+            }, asyncExecutor);
+
 
             // 5. 转换为VO并返回
             return convertToVO(document);
@@ -128,7 +131,6 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         }
     }
 
-    @Async
     protected void processDocumentAsync(Long documentId) {
         try {
             // 1. 获取文档信息
@@ -198,7 +200,9 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         documentMapper.updateById(document);
 
         // 3. 重新处理文档
-        processDocumentAsync(id);
+        CompletableFuture.runAsync(() -> {
+            processDocumentAsync(id);
+        }, asyncExecutor);
 
         return convertToVO(document);
     }
