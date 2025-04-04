@@ -564,7 +564,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     public Page<KbChatHistory> getChatHistory(String sessionId) {
         Page<KbChatHistory> page = new Page<>(1, 100);
         LambdaQueryWrapper<KbChatHistory> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(KbChatHistory::getSessionId, sessionId).orderByDesc(KbChatHistory::getCreateTime);
+        wrapper.eq(KbChatHistory::getSessionId, sessionId).orderByAsc(KbChatHistory::getCreateTime);
         return chatHistoryMapper.selectPage(page, wrapper);
     }
 
