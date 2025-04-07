@@ -124,9 +124,8 @@ public class SysUserController {
     @PutMapping("/{id}/info")
     public R<Void> updateInfo(
             @Parameter(description = "用户ID") @PathVariable Long id,
-            @Parameter(description = "昵称") @RequestParam String nickname,
-            @Parameter(description = "邮箱") @RequestParam String email) {
-        userService.updateUserInfo(id, nickname, email);
+            @RequestBody SysUserDTO dto) {
+        userService.updateUserInfo(id, dto.getNickname(), dto.getEmail(), dto.getPhone());
         return R.ok(null);
     }
 }

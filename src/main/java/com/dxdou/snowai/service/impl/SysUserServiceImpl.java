@@ -168,13 +168,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
-    public void updateUserInfo(Long userId, String nickname, String email) {
+    public void updateUserInfo(Long userId, String nickname, String email, String phone) {
         SysUser user = getById(userId);
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
         user.setNickname(nickname);
         user.setEmail(email);
+        user.setPhone(phone);
         updateById(user);
     }
 

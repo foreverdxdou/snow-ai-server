@@ -99,8 +99,9 @@ public interface SysUserService extends IService<SysUser> {
      * @param userId   用户ID
      * @param nickname 昵称
      * @param email    邮箱
+     * @param phone
      */
-    void updateUserInfo(Long userId, String nickname, String email);
+    void updateUserInfo(Long userId, String nickname, String email, String phone);
 
     /**
      * 获取用户角色列表
