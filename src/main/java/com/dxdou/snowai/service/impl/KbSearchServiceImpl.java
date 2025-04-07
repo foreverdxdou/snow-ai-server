@@ -66,10 +66,10 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
     @Override
     public Page<KbSearchVO> semanticSearch(String query, Long[] kbIds, Page<KbSearchVO> page, List<Long> tagIds) {
         // 使用ElasticsearchOperations根据关键词检索文档KbDocumentIndex
-        Criteria criteria = new Criteria().or("content").contains(query)
-                .or("title").contains(query);
-        ; // 假设在 content 字段中搜索
-        Query searchQuery = CriteriaQuery.builder(criteria).withPageable(
+        Criteria criteria = new Criteria().or("content").matches(query)
+                .or("title").matches(query);
+        // 假设在 content 字段中搜索
+        Query searchQuery = CriteriaQuery.builder(criteria).withMinScore(3).withPageable(
                 Pageable.ofSize((int) page.getSize())).build();
 
         SearchHits<KbDocumentIndex> searchHits = elasticsearchTemplate.search(searchQuery, KbDocumentIndex.class);

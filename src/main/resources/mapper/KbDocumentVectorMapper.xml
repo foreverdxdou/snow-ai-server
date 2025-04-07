@@ -34,8 +34,7 @@
         AND  dv.document_id IN
         <foreach collection="docIds" item="docId" open="(" separator="," close=")">    #{docId} </foreach>
         </if>
-        ORDER BY dv.content_vector &lt;=&gt;
-        #{queryVector}::vector LIMIT #{limit} </select>
+        ORDER BY similarity LIMIT #{limit} </select>
 
     <!-- 根据文档ID查询向量 -->
     <select id="selectByDocumentId" resultMap="BaseResultMap"> SELECT <include

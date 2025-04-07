@@ -142,4 +142,10 @@ public interface KbDocumentService extends IService<KbDocument> {
      * @return 每日新增数量列表
      */
     List<Long> getDocTrend(LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
+     * 处理文档
+     * @param documentId
+     */
+    public void processDocument(Long documentId);
 }

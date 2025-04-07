@@ -50,7 +50,9 @@ public class KbDocumentController {
             @Parameter(description = "知识库ID") @RequestParam("kbId") Long kbId,
             @Parameter(description = "标签ID列表") @RequestParam(required = false) List<Long> tagIds) {
         Long creatorId = authService.getCurrentUser().getId();
-        return R.ok(documentService.uploadDocument(file, kbId, creatorId, tagIds));
+        KbDocumentVO documentVO = documentService.uploadDocument(file, kbId, creatorId, tagIds);
+        documentService.processDocument(documentVO.getId());
+        return R.ok(documentVO);
     }
 
     /**
@@ -107,7 +109,18 @@ public class KbDocumentController {
     public R<KbDocumentVO> update(
             @Parameter(description = "文档ID") @PathVariable Long id,
             @Valid @RequestBody KbDocumentDTO dto) {
-        return R.ok(documentService.updateDocument(id, dto));
+        KbDocumentVO documentVO = documentService.updateDocument(id, dto);
+        documentService.processDocument(documentVO.getId());
+        return R.ok(documentVO);
+    }
+
+    @Operation(summary = "解析文档")
+    @PostMapping("/{id}/parse")
+    @PreAuthorize("hasAuthority('kb:document:edit')")
+    public R<Void> parse(
+            @Parameter(description = "文档ID") @PathVariable Long id) {
+        documentService.processDocument(id);
+        return R.ok(null);
     }
 
     /**

@@ -117,18 +117,19 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
                 saveDocumentTags(document.getId(), tagIds);
             }
 
-            // 4. 异步处理文档解析
-            CompletableFuture.runAsync(() -> {
-                processDocumentAsync(document.getId());
-            }, asyncExecutor);
-
-
             // 5. 转换为VO并返回
             return convertToVO(document);
         } catch (Exception e) {
             log.error("上传文档失败", e);
             throw new BusinessException("上传文档失败：" + e.getMessage());
         }
+    }
+
+    @Override
+    public void processDocument(Long documentId) {
+        CompletableFuture.runAsync(() -> {
+            processDocumentAsync(documentId);
+        }, asyncExecutor);
     }
 
     protected void processDocumentAsync(Long documentId) {
@@ -199,11 +200,9 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         document.setUpdateTime(LocalDateTime.now());
         documentMapper.updateById(document);
 
-        // 3. 重新处理文档
-        CompletableFuture.runAsync(() -> {
-            processDocumentAsync(id);
-        }, asyncExecutor);
-
+        // 3. 保存文档版本
+        document.setVersion(document.getVersion() + 1);
+        saveDocumentVersion(document);
         return convertToVO(document);
     }
 
