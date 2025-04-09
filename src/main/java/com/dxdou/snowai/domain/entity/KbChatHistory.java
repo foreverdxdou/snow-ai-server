@@ -35,6 +35,8 @@ public class KbChatHistory {
 
     private String requestId;
 
+    private Integer isStop;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

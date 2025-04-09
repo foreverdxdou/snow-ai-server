@@ -19,7 +19,9 @@ import com.dxdou.snowai.service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.SignalType;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -92,7 +95,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
             // 5. 保存对话历史
             long processTime = System.currentTimeMillis() - startTime;
-            saveChatHistory(request.getSessionId(), kbIds, request.getQuestion(), answer, model.getId(), processTime, request.getRequestId());
+            saveChatHistory(request.getSessionId(), kbIds, request.getQuestion(), answer, model.getId(), processTime, request.getRequestId(), false);
 
             // 6. 构建响应
             QaResponse response = new QaResponse();
@@ -122,6 +125,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
         // 使用 AtomicBoolean 来控制流的状态
         AtomicBoolean isCompleted = new AtomicBoolean(false);
+        AtomicBoolean isStop = new AtomicBoolean(false);
 
         // 保存当前的安全上下文
         SecurityContext context = SecurityContextHolder.getContext();
@@ -136,7 +140,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                 // 5. 保存对话历史
                 long processTime = System.currentTimeMillis() - startTime;
                 saveChatHistory(request.getSessionId(), null, request.getQuestion(), answer.toString(), null,
-                        processTime, request.getRequestId());
+                        processTime, request.getRequestId(), isStop.get());
             }
         });
 
@@ -146,9 +150,13 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             emitter.complete();
         });
 
+
         // 设置错误回调
         emitter.onError(throwable -> {
             log.error("SSE error occurred", throwable);
+            if (StringUtils.contains(throwable.getMessage(), "你的主机中的软件中止了一个已建立的连接")) {
+                isStop.set(true);
+            }
             isCompleted.set(true);
             try {
                 emitter.send(SseEmitter.event()
@@ -156,7 +164,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         .name("error")
                         .data("Stream error occurred")
                         .build());
-                emitter.complete();
+                emitter.completeWithError(throwable);
             } catch (IOException e) {
                 log.error("Error sending error event", e);
             }
@@ -190,7 +198,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                             return doc;
                         }).collect(Collectors.toList());
             }
-            sendRequestForStream(request, isCompleted, emitter, answer, relevantDocs);
+            sendRequestForStream(request, isCompleted, emitter, answer, relevantDocs, isStop);
         }, asyncExecutor);
 
         return emitter;
@@ -237,6 +245,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
         // 使用 AtomicBoolean 来控制流的状态
         AtomicBoolean isCompleted = new AtomicBoolean(false);
+        AtomicBoolean isStop = new AtomicBoolean(false);
 
         // 保存当前的安全上下文
         SecurityContext context = SecurityContextHolder.getContext();
@@ -251,7 +260,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                 // 5. 保存对话历史
                 long processTime = System.currentTimeMillis() - startTime;
                 saveChatHistory(request.getSessionId(), null, request.getQuestion(), answer.toString(), null,
-                        processTime, request.getRequestId());
+                        processTime, request.getRequestId(), isStop.get());
             }
         });
 
@@ -264,6 +273,9 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         // 设置错误回调
         emitter.onError(throwable -> {
             log.error("SSE error occurred", throwable);
+            if (StringUtils.contains(throwable.getMessage(), "你的主机中的软件中止了一个已建立的连接")) {
+                isStop.set(true);
+            }
             isCompleted.set(true);
             try {
                 emitter.send(SseEmitter.event()
@@ -271,7 +283,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         .name("error")
                         .data("Stream error occurred")
                         .build());
-                emitter.complete();
+                emitter.completeWithError(throwable);
             } catch (IOException e) {
                 log.error("Error sending error event", e);
             }
@@ -279,14 +291,14 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
 
         // 异步处理流式响应
         CompletableFuture.runAsync(() -> {
-            sendRequestForStream(request, isCompleted, emitter, answer, null);
+            sendRequestForStream(request, isCompleted, emitter, answer, null, isStop);
         }, asyncExecutor);
 
         return emitter;
     }
 
     private void sendRequestForStream(QaRequest request, AtomicBoolean isCompleted, SseEmitter emitter,
-                                      StringBuilder answer, List<KbDocument> relevantDocs) {
+                                      StringBuilder answer, List<KbDocument> relevantDocs, AtomicBoolean isStop) {
         try {
             // 1. 获取默认的AI模型配置
             LlmConfig model = getDefaultModel(request.getLlmId());
@@ -318,16 +330,23 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                     .bodyValue(JSON.toJSONString(requestBody))
                     .retrieve()
                     .bodyToFlux(String.class)
-                    .takeWhile(chunk -> {
-                        log.info("takeWhile chunk: {}", chunk);
-                        return !isCompleted.get();
-                    })
+                    .takeWhile(chunk -> !isCompleted.get())
                     .doOnNext(chunk -> {
                         log.info("对话 Response chunk: {}", chunk);
                         if (isCompleted.get()) {
                             return;
                         }
                         processStreamResponse(chunk, isCompleted, emitter, answer, model);
+                    })
+                    .doOnCancel(() -> {
+                        log.info("对话流被取消--doOnCancel");
+                    })
+                    .doFinally(signalType -> {
+                        if (signalType == SignalType.CANCEL) {
+                            log.info("对话流被取消--doFinally");
+                        } else {
+                            log.info("对话流正常结束--doFinally---" + signalType.name());
+                        }
                     })
                     .doOnComplete(() -> {
                         if (!isCompleted.get()) {
@@ -342,6 +361,9 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                 log.error("Error completing stream", e);
                             }
                         }
+                    })
+                    .doOnCancel(() -> {
+                        log.info("对话流被取消--doOnCancel");
                     })
                     .doOnError(error -> {
                         log.error("Stream error", error);
@@ -376,6 +398,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         }
     }
 
+    @SneakyThrows
     private void processStreamResponse(String chunk, AtomicBoolean isCompleted, SseEmitter emitter,
                                        StringBuilder answer, LlmConfig model) {
         try {
@@ -424,6 +447,8 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                 // 默认处理方式
                 processDefaultResponse(chunkResponse, isCompleted, emitter, answer);
             }
+        } catch (ClientAbortException e) {
+            throw e;
         } catch (Exception e) {
             log.error("处理流式响应失败", e);
             if (!isCompleted.get()) {
@@ -742,9 +767,10 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
      * @param modelId     模型ID
      * @param processTime 处理时间
      * @param requestId
+     * @param isStop
      */
     private void saveChatHistory(String sessionId, Long[] kbIds, String question, String answer, Long modelId,
-                                 long processTime, String requestId) {
+                                 long processTime, String requestId, boolean isStop) {
         KbChatHistory history = new KbChatHistory();
         history.setSessionId(sessionId);
         history.setKbIds(kbIds != null && kbIds.length > 0 ? CollUtil.join(Arrays.asList(kbIds), ",") : null);
@@ -757,6 +783,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         Long userId = authService.getCurrentUser().getId();
         history.setUserId(userId);
         history.setRequestId(requestId);
+        history.setIsStop(isStop ? 1 : 0);
         try {
             chatHistoryMapper.insert(history);
         } catch (Exception e) {

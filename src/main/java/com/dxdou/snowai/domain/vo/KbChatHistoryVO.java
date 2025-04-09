@@ -57,6 +57,12 @@ public class KbChatHistoryVO {
     private String answer;
 
     /**
+     * 是否终止 0:未终止 1:终止
+     */
+    @Schema(description = "是否终止 0:未终止 1:终止")
+    private Integer isStop;
+
+    /**
      * 创建时间
      */
     @Schema(description = "创建时间")
