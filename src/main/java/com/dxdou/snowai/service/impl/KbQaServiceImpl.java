@@ -621,6 +621,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         return chatHistoryMapper.selectUserChatHistory(userId);
     }
 
+    @Override
+    public void clearChatHistoryByUser(Long userId) {
+        chatHistoryMapper.clearChatHistoryByUser(userId);
+    }
+
     /**
      * 获取默认的AI模型配置
      *

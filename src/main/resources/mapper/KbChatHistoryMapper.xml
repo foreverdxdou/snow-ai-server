@@ -15,16 +15,17 @@
         <result column="process_time" property="processTime" />
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
+        <result column="deleted" property="deleted" />
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List"> id, session_id, kb_ids, user_id, question, answer, tokens_used,
-        process_time, create_time, update_time </sql>
+        process_time, create_time, update_time, deleted </sql>
 
     <!-- 分页查询聊天历史列表 -->
     <select id="selectChatHistoryList" resultMap="BaseResultMap">
         SELECT h.id, h.knowledge_base_id, h.request_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
-        user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
+        user_name, h.question, h.answer, h.create_time, h.update_time, h.deleted FROM kb_chat_history h LEFT
         JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
         u.id WHERE h.deleted = 0 <if test="knowledgeBaseId != null"> AND h.knowledge_base_id =
         #{knowledgeBaseId} </if>
@@ -34,7 +35,7 @@
     <!-- 根据ID查询聊天历史信息 -->
     <select id="selectChatHistoryByRequestId" resultMap="BaseResultMap">
         SELECT h.id, h.knowledge_base_id, h.request_id, kb.name as knowledge_base_name, h.user_id, u.nickname as
-        user_name, h.question, h.answer, h.create_time, h.update_time FROM kb_chat_history h LEFT
+        user_name, h.question, h.answer, h.create_time, h.update_time, h.deleted FROM kb_chat_history h LEFT
         JOIN kb_knowledge_base kb ON h.knowledge_base_id = kb.id LEFT JOIN sys_user u ON h.user_id =
         u.id WHERE h.request_id = #{requestId} AND h.deleted = 0 </select>
 
@@ -48,7 +49,7 @@
                create_time
         FROM
             ( SELECT DISTINCT ON ( session_id ) ID, kb_ids, question, answer, session_id, create_time FROM kb_chat_history
-              WHERE user_id = #{userId}
+              WHERE user_id = #{userId} AND deleted = 0
               ORDER BY session_id, create_time DESC ) T
         ORDER BY
             create_time DESC;
@@ -61,6 +62,10 @@
     <delete id="deleteByRequestId">
         UPDATE kb_chat_history SET deleted = 1 WHERE
             request_id = #{requestId} AND deleted = 0
+    </delete>
+    <delete id="clearChatHistoryByUser">
+        UPDATE kb_chat_history SET deleted = 1 WHERE
+            user_id = #{userId} AND deleted = 0
     </delete>
 
 </mapper>

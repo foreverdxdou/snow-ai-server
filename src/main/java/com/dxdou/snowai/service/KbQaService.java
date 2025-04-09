@@ -87,4 +87,10 @@ public interface KbQaService {
      * @return
      */
     List<KbChatHistory> getUserChatHistory(Long userId);
+
+    /**
+     * 清除用户对话历史
+     * @param userId
+     */
+    void clearChatHistoryByUser(Long userId);
 }

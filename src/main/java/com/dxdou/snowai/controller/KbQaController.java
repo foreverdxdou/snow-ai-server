@@ -79,6 +79,13 @@ public class KbQaController {
         return R.ok(newPage);
     }
 
+    @Operation(summary = "清除用户对话历史")
+    @DeleteMapping("/clearChatHistoryByUser")
+    public R<Void> clearChatHistoryByUser() {
+        qaService.clearChatHistoryByUser(authService.getCurrentUser().getId());
+        return R.ok(null);
+    }
+
     @Operation(summary = "清除对话历史")
     @DeleteMapping("/history/{sessionId}")
     public R<Void> clearChatHistory(

@@ -56,4 +56,10 @@ public interface KbChatHistoryMapper extends BaseMapper<KbChatHistory> {
      * @param requestId
      */
     void deleteByRequestId(@Param("requestId") String requestId);
+
+    /**
+     * 清空用户聊天历史
+     * @param userId
+     */
+    void clearChatHistoryByUser(@Param("userId") Long userId);
 }
