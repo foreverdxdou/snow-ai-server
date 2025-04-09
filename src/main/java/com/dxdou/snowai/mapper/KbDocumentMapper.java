@@ -11,6 +11,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 文档Mapper接口
@@ -80,7 +81,14 @@ public interface KbDocumentMapper extends BaseMapper<KbDocument> {
      * @param documentId 文档ID
      * @return 标签信息列表
      */
-    List<KbTagVO> selectDocumentTags(@Param("documentId") Long documentId);
+    List<KbTagVO> selectDocumentTags(@Param("documentIds") Set<Long> documentIds);
+
+    /**
+     * 查询文档的标签列表
+     * @param kbIds
+     * @return
+     */
+    List<KbTagVO> selectDocumentTagsByKbIds(@Param("kbIds") Set<Long> kbIds);
 
     /**
      * 根据解析状态统计文档数量

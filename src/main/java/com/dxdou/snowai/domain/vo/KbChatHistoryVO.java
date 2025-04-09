@@ -27,6 +27,12 @@ public class KbChatHistoryVO {
     private String kbIds;
 
     /**
+     * 请求ID
+     */
+    @Schema(description = "请求ID")
+    private String requestId;
+
+    /**
      * 会话ID
      */
     @Schema(description = "会话ID")

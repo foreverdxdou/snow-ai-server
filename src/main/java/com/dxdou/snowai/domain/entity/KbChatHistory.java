@@ -33,6 +33,8 @@ public class KbChatHistory {
 
     private Long processTime;
 
+    private String requestId;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

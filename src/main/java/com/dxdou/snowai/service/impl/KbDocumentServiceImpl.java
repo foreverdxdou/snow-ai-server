@@ -1,5 +1,6 @@
 package com.dxdou.snowai.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -46,12 +47,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 /**
  * 知识库文档服务实现类
@@ -100,7 +99,33 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
             KbDocument document = new KbDocument();
             document.setTitle(file.getOriginalFilename());
             document.setContent(content);
-            document.setFileType(file.getContentType());
+            String fileEx = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1);
+            switch (fileEx) {
+                case "docx":
+                case "doc":
+                    document.setFileType("Word");
+                    break;
+                case "pptx":
+                case "ppt":
+                    document.setFileType("PPT");
+                    break;
+                case "pdf":
+                    document.setFileType("PDF");
+                    break;
+                case "txt":
+                    document.setFileType("TXT");
+                    break;
+                case "xlsx":
+                case "xls":
+                    document.setFileType("Excel");
+                    break;
+                case "md":
+                    document.setFileType("Markdown");
+                    break;
+                default:
+                    document.setFileType("Other");
+                    break;
+            }
             document.setFileSize(file.getSize());
             document.setFileUrl(fileUrl);
             document.setKbId(kbId);
@@ -173,8 +198,17 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
 
     @Override
     public IPage<KbDocumentVO> getDocumentPage(Page<KbDocument> page, String title, Long kbId, Long categoryId,
-            Long creatorId, Integer status) {
-        return documentMapper.selectDocumentList(page, title, kbId, categoryId, creatorId, status);
+                                               Long creatorId, Integer status) {
+        IPage<KbDocumentVO> voPage =  documentMapper.selectDocumentList(page, title, kbId, categoryId, creatorId, status);
+        if (voPage != null && CollUtil.isNotEmpty(voPage.getRecords())) {
+            List<KbTagVO> tags = documentMapper.selectDocumentTags(voPage.getRecords().stream().map(KbDocumentVO::getId).collect(Collectors.toSet()));
+            if (CollUtil.isNotEmpty(tags)) {
+                for (KbDocumentVO record : voPage.getRecords()) {
+                    record.setTags(tags.stream().filter(tag -> tag.getDocumentId().equals(record.getId())).collect(Collectors.toList()));
+                }
+            }
+        }
+        return voPage;
     }
 
     @Override
@@ -183,7 +217,9 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         if (document == null) {
             throw new BusinessException("文档不存在");
         }
-        return convertToVO(document);
+        KbDocumentVO vo = convertToVO(document);
+        vo.setTags(documentMapper.selectDocumentTags(Collections.singleton(id)));
+        return vo;
     }
 
     @Override
@@ -200,8 +236,15 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
         document.setUpdateTime(LocalDateTime.now());
         documentMapper.updateById(document);
 
+        documentTagMapper.deleteByDocumentId(id);
+        // 5. 保存文档标签关联
+        if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
+            saveDocumentTags(id, dto.getTagIds());
+        }
+
         // 3. 保存文档版本
         document.setVersion(document.getVersion() + 1);
+        document.setId(id);
         saveDocumentVersion(document);
         return convertToVO(document);
     }
@@ -252,7 +295,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
 
     @Override
     public List<KbTagVO> getDocumentTags(Long documentId) {
-        return documentMapper.selectDocumentTags(documentId);
+        return documentMapper.selectDocumentTags(Collections.singleton(documentId));
     }
 
     @Override
@@ -352,7 +395,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
      */
     private String parseDoc(InputStream inputStream) throws IOException {
         try (HWPFDocument doc = new HWPFDocument(inputStream);
-                WordExtractor extractor = new WordExtractor(doc)) {
+             WordExtractor extractor = new WordExtractor(doc)) {
             return extractor.getText();
         }
     }
@@ -362,7 +405,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
      */
     private String parseDocx(InputStream inputStream) throws IOException {
         try (XWPFDocument document = new XWPFDocument(inputStream);
-                XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
+             XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
             return extractor.getText();
         }
     }

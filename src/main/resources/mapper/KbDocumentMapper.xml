@@ -108,12 +108,22 @@ FROM
 WHERE
 	d.deleted = 0 WHERE d.id = #{id} AND d.deleted = 0 </select>
 
-    <select id="selectDocumentTags" resultType="com.dxdou.snowai.domain.vo.KbTagVO"> SELECT t.id,
-        t.name, t.description, t.kb_id, k.name AS kb_name, t.creator_id, u.nickname AS creator_name,
-        t.status, t.create_time, t.update_time FROM kb_tag t LEFT JOIN kb_document_tag dt ON t.id =
-        dt.tag_id LEFT JOIN kb_knowledge_base k ON t.kb_id = k.id LEFT JOIN sys_user u ON
-        t.creator_id = u.id WHERE dt.document_id = #{documentId} AND t.deleted = 0 AND dt.deleted =
-        0 ORDER BY t.create_time DESC </select>
+    <select id="selectDocumentTags" resultType="com.dxdou.snowai.domain.vo.KbTagVO">
+        SELECT DISTINCT
+        tag.ID,
+        tag.NAME,
+        dt.document_id
+        FROM
+        kb_tag tag
+        JOIN kb_document_tag dt ON tag.ID = dt.tag_id
+        WHERE
+        tag.deleted = 0
+        AND dt.deleted = 0
+        AND dt.document_id IN
+        <foreach collection="documentIds" item="documentId" open="(" separator="," close=")">
+            #{documentId}
+        </foreach>
+        ORDER BY tag.id DESC </select>
 
     <select id="selectDocumentTagIds" resultType="java.lang.Long"> SELECT tag_id FROM
         kb_document_tag WHERE document_id = #{documentId} </select>
@@ -158,6 +168,23 @@ WHERE
         AND create_time BETWEEN #{startTime} AND #{endTime}
         GROUP BY DATE(create_time)
         ORDER BY DATE(create_time)
+    </select>
+
+    <select id="selectDocumentTagsByKbIds" resultType="com.dxdou.snowai.domain.vo.KbTagVO">
+        SELECT DISTINCT
+            tag.ID,
+            tag.NAME,
+            d.kb_id
+        FROM
+            kb_tag tag
+                JOIN kb_document_tag dt ON tag.ID = dt.tag_id
+                JOIN kb_document d ON d."id" = dt.document_id
+         WHERE  tag.deleted = 0 AND dt.deleted =0 AND d.deleted =0
+         AND d.kb_id IN
+         <foreach collection="kbIds" item="kbId" open="(" separator="," close=")">
+              #{kbId}
+         </foreach>
+         ORDER BY tag.id DESC
     </select>
 
 </mapper>

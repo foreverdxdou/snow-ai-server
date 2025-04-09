@@ -20,23 +20,27 @@ public class KbTagVO {
     @Schema(description = "标签名称")
     private String name;
 
-    @Schema(description = "标签描述")
-    private String description;
-
     @Schema(description = "知识库ID")
     private Long kbId;
 
-    @Schema(description = "知识库名称")
-    private String kbName;
+    @Schema(description = "文档ID")
+    private Long documentId;
 
-    @Schema(description = "创建者ID")
-    private Long creatorId;
-
-    @Schema(description = "创建者名称")
-    private String creatorName;
-
-    @Schema(description = "状态")
-    private Integer status;
+//    @Schema(description = "标签描述")
+//    private String description;
+//
+//
+//    @Schema(description = "知识库名称")
+//    private String kbName;
+//
+//    @Schema(description = "创建者ID")
+//    private Long creatorId;
+//
+//    @Schema(description = "创建者名称")
+//    private String creatorName;
+//
+//    @Schema(description = "状态")
+//    private Integer status;
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;

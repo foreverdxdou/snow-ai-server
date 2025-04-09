@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 知识库VO类
@@ -64,6 +65,11 @@ public class KbKnowledgeBaseVO {
     private Integer documentCount;
 
     /**
+     * 文档总大小
+     */
+    private Long documentTotalSize;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
@@ -92,4 +98,14 @@ public class KbKnowledgeBaseVO {
      * 角色权限列表
      */
     private List<KbKnowledgeBasePermissionVO> rolePermissions;
+
+    /**
+     * 标签列表
+     */
+    private List<KbTagVO> tags;
+
+    /**
+     * 文档类型列表
+     */
+    private Set<String> documentTypes;
 }

@@ -31,12 +31,25 @@
     </resultMap>
 
     <!-- 分页查询知识库列表 -->
-    <select id="selectKnowledgeBaseList" resultMap="KnowledgeBaseVOMap"> SELECT kb.id, kb.name,kb.category_id,
-        kb.description, kb.creator_id, u.nickname as creator_name, kb.status, kb.create_time,
-        kb.update_time, (SELECT COUNT(*) FROM kb_document WHERE kb_id = kb.id AND deleted = 0) as
-        document_count, (SELECT COUNT(*) FROM kb_category WHERE kb_id = kb.id AND deleted = 0) as
-        category_count, (SELECT COUNT(*) FROM kb_tag WHERE kb_id = kb.id AND deleted = 0) as
-        tag_count FROM kb_knowledge_base kb LEFT JOIN sys_user u ON kb.creator_id = u.id <where>
+    <select id="selectKnowledgeBaseList" resultMap="KnowledgeBaseVOMap">
+        SELECT
+        kb.ID,
+        kb.NAME,
+        kb.category_id,
+        kb.description,
+        kb.creator_id,
+        u.nickname AS creator_name,
+        kb.status,
+        kb.create_time,
+        kb.update_time,
+        ( SELECT COUNT ( * ) FROM kb_document WHERE kb_id = kb.ID AND deleted = 0 ) AS document_count,
+        ( SELECT COUNT ( * ) FROM kb_category WHERE kb_id = kb.ID AND deleted = 0 ) AS category_count,
+        ( SELECT COUNT ( * ) FROM kb_tag WHERE kb_id = kb.ID AND deleted = 0 ) AS tag_count,
+        ( SELECT SUM ( file_size ) FROM kb_document WHERE kb_id = kb.ID AND deleted = 0 ) AS document_total_size
+        FROM
+        kb_knowledge_base kb
+        LEFT JOIN sys_user u ON kb.creator_id = u.ID
+        <where>
         kb.deleted = 0 <if test="name != null and name != ''"> AND kb.name LIKE CONCAT('%', #{name},
         '%') </if>
             <if test="creatorId != null"> AND kb.creator_id = #{creatorId} </if>

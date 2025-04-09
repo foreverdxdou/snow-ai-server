@@ -18,6 +18,9 @@ public class QaRequest {
     @Schema(description = "会话ID")
     private String sessionId;
 
+    @Schema(description = "请求ID")
+    private String requestId;
+
     @Schema(description = "上下文消息列表")
     private String[] context;
 

@@ -1,12 +1,16 @@
 package com.dxdou.snowai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dxdou.snowai.common.BusinessException;
+import com.dxdou.snowai.domain.entity.KbDocument;
 import com.dxdou.snowai.domain.entity.KbKnowledgeBase;
 import com.dxdou.snowai.domain.entity.KbKnowledgeBasePermission;
 import com.dxdou.snowai.domain.vo.KbKnowledgeBaseVO;
+import com.dxdou.snowai.domain.vo.KbTagVO;
+import com.dxdou.snowai.mapper.KbDocumentMapper;
 import com.dxdou.snowai.mapper.KbKnowledgeBaseMapper;
 import com.dxdou.snowai.mapper.KbKnowledgeBasePermissionMapper;
 import com.dxdou.snowai.service.KbKnowledgeBaseService;
@@ -17,6 +21,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -30,12 +35,28 @@ public class KbKnowledgeBaseServiceImpl extends ServiceImpl<KbKnowledgeBaseMappe
         implements KbKnowledgeBaseService {
 
     private final KbKnowledgeBaseMapper knowledgeBaseMapper;
+    private final KbDocumentMapper documentMapper;
     private final KbKnowledgeBasePermissionMapper permissionMapper;
 
     @Override
     public Page<KbKnowledgeBaseVO> getKnowledgeBasePage(Page<KbKnowledgeBase> page, String name, Long creatorId,
             Integer status, Long categoryId) {
-        return knowledgeBaseMapper.selectKnowledgeBaseList(page, name, creatorId, status, categoryId);
+
+        Page<KbKnowledgeBaseVO> voPage = knowledgeBaseMapper.selectKnowledgeBaseList(page, name, creatorId, status, categoryId);
+        if (voPage != null && !CollectionUtils.isEmpty(voPage.getRecords())) {
+            Set<Long> kbIds = voPage.getRecords().stream().map(KbKnowledgeBaseVO::getId).collect(Collectors.toSet());
+            List<KbTagVO> tags = documentMapper.selectDocumentTagsByKbIds(voPage.getRecords().stream().map(KbKnowledgeBaseVO::getId).collect(Collectors.toSet()));
+            List<KbDocument> documents = documentMapper.selectList(Wrappers.query(KbDocument.class).in("kb_id", kbIds));
+            for (KbKnowledgeBaseVO record : voPage.getRecords()) {
+                if (!CollectionUtils.isEmpty(tags)) {
+                    record.setTags(tags.stream().filter(tag -> tag.getKbId().equals(record.getId())).collect(Collectors.toList()));
+                }
+                if (!CollectionUtils.isEmpty(documents)) {
+                    record.setDocumentTypes(documents.stream().filter(document -> document.getKbId().equals(record.getId())).map(KbDocument::getFileType).collect(Collectors.toSet()));
+                }
+            }
+        }
+        return voPage;
     }
 
     @Override

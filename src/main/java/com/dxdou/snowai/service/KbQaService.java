@@ -75,11 +75,11 @@ public interface KbQaService {
     void deleteChatHistory(Long historyId);
 
     /**
-     * 清除知识库的对话历史
+     * 清除某个对话
      *
-     * @param kbId 知识库ID
+     * @param requestId 请求ID
      */
-    void clearChatHistory(Long kbId);
+    void clearChatHistoryByRequestId(String requestId);
 
     /**
      * 查询用户的对话历史
