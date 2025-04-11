@@ -11,7 +11,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +34,7 @@ public class SysUserController {
 
     @Operation(summary = "分页查询用户列表")
     @GetMapping("/page")
+    @PreAuthorize("hasAuthority('user:list')")
     public R<Page<SysUserVO>> page(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer current,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") Integer size,
@@ -45,6 +50,7 @@ public class SysUserController {
 
     @Operation(summary = "获取用户详情")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('user:view')")
     public R<SysUserVO> getById(@Parameter(description = "用户ID") @PathVariable Long id) {
         SysUser user = userService.getById(id);
         if (user == null) {
@@ -57,6 +63,7 @@ public class SysUserController {
 
     @Operation(summary = "创建用户")
     @PostMapping
+    @PreAuthorize("hasAuthority('user:add')")
     public R<Void> create(@Validated @RequestBody SysUserDTO userDTO) {
         SysUser user = new SysUser();
         BeanUtils.copyProperties(userDTO, user);
@@ -66,6 +73,7 @@ public class SysUserController {
 
     @Operation(summary = "更新用户")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('user:edit')")
     public R<Void> update(
             @Parameter(description = "用户ID") @PathVariable Long id,
             @Validated @RequestBody SysUserDTO userDTO) {
@@ -78,9 +86,18 @@ public class SysUserController {
     }
 
     @Operation(summary = "删除用户")
+    @PreAuthorize("hasAuthority('user:delete')")
     @DeleteMapping("/{id}")
     public R<Void> delete(@Parameter(description = "用户ID") @PathVariable Long id) {
         userService.deleteUser(id);
+        return R.ok(null);
+    }
+
+    @Operation(summary = "批量删除用户")
+    @PreAuthorize("hasAuthority('user:delete')")
+    @DeleteMapping("/batch")
+    public R<Void> deleteBatch(@Parameter(description = "用户ID") @RequestBody List<Long> ids) {
+        userService.removeBatchByIds(ids);
         return R.ok(null);
     }
 

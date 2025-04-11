@@ -11,6 +11,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -105,7 +108,22 @@ public class EmbeddingConfigController {
         return R.ok(null);
     }
 
+    /**
+     * 批量删除Embedding模型配置
+     *
+     * @param ids 配置ID
+     * @return 操作结果
+     */
+    @Operation(summary = "批量删除Embedding模型配置")
+    @DeleteMapping("/batch")
+    @PreAuthorize("hasAuthority('embedding:delete')")
+    public R<Void> deleteBatch(@Parameter(description = "配置ID") @RequestBody List<Long> ids) {
+        embeddingConfigService.removeBatchByIds(ids);
+        return R.ok(null);
+    }
+
     @Operation(summary = "修改Embedding模型配置状态")
+    @PreAuthorize("hasAuthority('embedding:edit')")
     @PutMapping("/{id}/status")
     public R<EmbeddingConfigVO> updateEnabledStatus(@Parameter(description = "配置ID") @PathVariable Long id,
                                                     @Parameter(description = "状态") @RequestParam Integer status) {
@@ -114,6 +132,7 @@ public class EmbeddingConfigController {
 
     @Operation(summary = "获取启用的Embedding模型配置")
     @GetMapping("/enabled")
+    @PreAuthorize("hasAuthority('embedding:view')")
     public R<EmbeddingConfigVO> getEnabledConfig() {
         return R.ok(embeddingConfigService.getEnabledEmbeddingConfig());
     }

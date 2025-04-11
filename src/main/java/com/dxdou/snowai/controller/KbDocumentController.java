@@ -137,6 +137,20 @@ public class KbDocumentController {
         return R.ok(null);
     }
 
+    /**
+     * 批量删除文档
+     *
+     * @param ids 文档ID
+     * @return 操作结果
+     */
+    @Operation(summary = "批量删除文档")
+    @DeleteMapping("/batch")
+    @PreAuthorize("hasAuthority('kb:document:delete')")
+    public R<Void> deleteBatch(@Parameter(description = "文档ID") @RequestBody List<Long> ids) {
+        documentService.removeBatchByIds(ids);
+        return R.ok(null);
+    }
+
     @Operation(summary = "更新文档状态")
     @PutMapping("/{id}/status")
     public R<Void> updateStatus(

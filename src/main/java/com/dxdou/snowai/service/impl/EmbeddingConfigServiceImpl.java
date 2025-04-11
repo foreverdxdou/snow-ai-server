@@ -2,6 +2,7 @@ package com.dxdou.snowai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dxdou.snowai.common.BusinessException;
 import com.dxdou.snowai.domain.dto.EmbeddingConfigDTO;
 import com.dxdou.snowai.domain.entity.EmbeddingConfig;
@@ -23,7 +24,7 @@ import java.time.LocalDateTime;
  */
 @Service
 @RequiredArgsConstructor
-public class EmbeddingConfigServiceImpl implements EmbeddingConfigService {
+public class EmbeddingConfigServiceImpl extends ServiceImpl<EmbeddingConfigMapper, EmbeddingConfig> implements EmbeddingConfigService {
 
     private final EmbeddingConfigMapper embeddingConfigMapper;
 

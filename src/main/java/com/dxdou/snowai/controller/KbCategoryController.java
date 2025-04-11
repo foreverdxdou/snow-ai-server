@@ -107,6 +107,20 @@ public class KbCategoryController {
     }
 
     /**
+     * 批量删除分类
+     *
+     * @param ids 分类ID
+     * @return 操作结果
+     */
+    @Operation(summary = "批量删除分类")
+    @DeleteMapping("/batch")
+    @PreAuthorize("hasAuthority('kb:category:delete')")
+    public R<Void> deleteBatch(@Parameter(description = "分类ID") @RequestBody List<Long> ids) {
+        categoryService.removeBatchByIds(ids);
+        return R.ok(null);
+    }
+
+    /**
      * 更新分类状态
      *
      * @param id     分类ID
@@ -130,6 +144,7 @@ public class KbCategoryController {
      */
     @Operation(summary = "获取知识库的分类树")
     @GetMapping("/tree")
+    @PreAuthorize("hasAuthority('kb:category:view')")
     public R<List<KbCategoryVO>> getCategoryTree() {
         return R.ok(categoryService.getCategoryTree());
     }

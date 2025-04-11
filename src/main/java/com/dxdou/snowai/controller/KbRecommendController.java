@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -27,6 +29,7 @@ public class KbRecommendController {
 
     @Operation(summary = "获取个性化推荐")
     @GetMapping("/personal")
+    @PreAuthorize("hasAuthority('kb:recommend:view')")
     public R<Page<KbSearchVO>> getPersonalRecommendations(
             @Parameter(description = "用户ID") @RequestParam Long userId,
             @Parameter(description = "知识库ID") @RequestParam Long kbId,
@@ -38,6 +41,7 @@ public class KbRecommendController {
 
     @Operation(summary = "获取热门推荐")
     @GetMapping("/hot")
+    @PreAuthorize("hasAuthority('kb:recommend:view')")
     public R<Page<KbSearchVO>> getHotRecommendations(
             @Parameter(description = "知识库ID") @RequestParam Long kbId,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") long current,
@@ -59,6 +63,7 @@ public class KbRecommendController {
 
     @Operation(summary = "记录用户行为")
     @PostMapping("/behavior")
+    @PreAuthorize("hasAuthority('kb:recommend:view')")
     public R<Void> recordUserBehavior(@RequestBody UserBehaviorRequest request) {
         recommendService.recordUserBehavior(request.getUserId(), request.getDocId(), request.getBehaviorType());
         return R.ok(null);

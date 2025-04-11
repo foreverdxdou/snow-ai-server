@@ -81,6 +81,13 @@ public class SysRoleController {
         return R.ok(null);
     }
 
+    @Operation(summary = "批量删除角色")
+    @DeleteMapping("/batch")
+    public R<Void> deleteBatch(@Parameter(description = "角色ID") @RequestBody List<Long> ids) {
+        roleService.removeBatchByIds(ids);
+        return R.ok(null);
+    }
+
     @Operation(summary = "获取角色权限列表")
     @GetMapping("/{id}/permissions")
     public R<List<String>> getRolePermissions(@Parameter(description = "角色ID") @PathVariable Long id) {

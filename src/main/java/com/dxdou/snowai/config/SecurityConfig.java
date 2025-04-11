@@ -1,6 +1,8 @@
 package com.dxdou.snowai.config;
 
 import com.dxdou.snowai.constant.SecurityConstants;
+import com.dxdou.snowai.handler.AuthenticationEntryPointHandler;
+import com.dxdou.snowai.handler.CustomAccessDeniedHandler;
 import com.dxdou.snowai.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,8 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final CorsFilter corsFilter;
+    private final AuthenticationEntryPointHandler authenticationEntryPointHandler;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -47,32 +51,16 @@ public class SecurityConfig {
                         .requestMatchers(SecurityConstants.EXCLUDED_URLS).permitAll()
                         .requestMatchers("/api/v1/kb/qa/chat/stream").permitAll() // SSE流式问答需要认证
                         .requestMatchers("/api/v1/kb/qa/general/stream").permitAll() // SSE通用流式问答需要认证
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(corsFilter, JwtAuthenticationFilter.class)
                 .addFilterBefore(corsFilter, LogoutFilter.class)
                 .exceptionHandling(ex -> ex
-                        .accessDeniedHandler((request, response, e) -> {
-                            log.error("访问被拒绝: {}", e.getMessage());
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.setCharacterEncoding("UTF-8");
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.getWriter().write("{\"code\":403,\"message\":\"访问被拒绝\"}");
-                        })
-                        .authenticationEntryPoint((request, response, e) -> {
-                            log.error("认证失败: {}", e.getMessage());
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.setCharacterEncoding("UTF-8");
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("{\"code\":401,\"message\":\"认证失败\"}");
-                        })
-                )
-        ;
+                        .accessDeniedHandler(accessDeniedHandler)
+                        .authenticationEntryPoint(authenticationEntryPointHandler));
 
         return http.build();
     }

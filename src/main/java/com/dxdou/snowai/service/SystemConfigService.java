@@ -1,6 +1,7 @@
 package com.dxdou.snowai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.dxdou.snowai.domain.dto.SystemConfigDTO;
 import com.dxdou.snowai.domain.entity.SystemConfig;
 import com.dxdou.snowai.domain.vo.SystemConfigVO;
@@ -10,7 +11,7 @@ import com.dxdou.snowai.domain.vo.SystemConfigVO;
  *
  * @author foreverdxdou
  */
-public interface SystemConfigService {
+public interface SystemConfigService extends IService<SystemConfig> {
 
     /**
      * 分页查询系统配置列表

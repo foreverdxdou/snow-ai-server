@@ -2,6 +2,7 @@ package com.dxdou.snowai.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -76,4 +77,10 @@ public class EmbeddingConfig {
      * 备注
      */
     private String remark;
+
+    /**
+     * 是否删除（0：未删除，1：已删除）
+     */
+    @TableLogic
+    private Integer deleted;
 }

@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +31,7 @@ public class LlmConfigController {
 
     @Operation(summary = "获取所有大模型配置")
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('llm:config:view')")
     public R<List<LlmConfigVO>> list() {
         List<LlmConfigVO> configVos = BeanUtil.copyToList(llmConfigService.list(Wrappers.lambdaQuery(LlmConfig.class).orderByDesc(LlmConfig::getCreateTime)), LlmConfigVO.class);
         return R.ok(configVos);
@@ -36,6 +39,7 @@ public class LlmConfigController {
 
     @Operation(summary = "获取可用的大模型配置")
     @GetMapping("/enabled")
+    @PreAuthorize("hasAuthority('llm:config:view')")
     public R<List<LlmConfigVO>> getEnabledLlmConfig() {
         List<LlmConfigVO> configVos = BeanUtil.copyToList(llmConfigService.list(Wrappers.lambdaQuery(LlmConfig.class)
                 .eq(LlmConfig::getEnabled, true)
@@ -45,24 +49,28 @@ public class LlmConfigController {
 
     @Operation(summary = "获取指定大模型配置")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('llm:config:view')")
     public R<LlmConfigVO> getById(@Parameter(description = "配置ID") @PathVariable Long id) {
         return R.ok(BeanUtil.copyProperties(llmConfigService.getById(id), LlmConfigVO.class));
     }
 
     @Operation(summary = "新增大模型配置")
     @PostMapping
+    @PreAuthorize("hasAuthority('llm:config:add')")
     public R<Boolean> save(@RequestBody LlmConfig config) {
         return R.ok(llmConfigService.save(config));
     }
 
     @Operation(summary = "更新大模型配置")
     @PutMapping
+    @PreAuthorize("hasAuthority('llm:config:edit')")
     public R<Boolean> update(@RequestBody LlmConfig config) {
         return R.ok(llmConfigService.updateById(config));
     }
 
     @Operation(summary = "删除大模型配置")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('llm:config:delete')")
     public R<Boolean> delete(@Parameter(description = "配置ID") @PathVariable Long id) {
         return R.ok(llmConfigService.removeById(id));
     }

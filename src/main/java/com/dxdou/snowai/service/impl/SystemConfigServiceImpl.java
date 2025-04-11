@@ -2,6 +2,7 @@ package com.dxdou.snowai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dxdou.snowai.common.BusinessException;
 import com.dxdou.snowai.domain.dto.SystemConfigDTO;
 import com.dxdou.snowai.domain.entity.SystemConfig;
@@ -25,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 @RequiredArgsConstructor
-public class SystemConfigServiceImpl implements SystemConfigService {
+public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, SystemConfig> implements SystemConfigService {
 
     private final SystemConfigMapper systemConfigMapper;
     private final RedisTemplate<String, String> redisTemplate;

@@ -11,6 +11,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -105,6 +108,20 @@ public class SystemConfigController {
         return R.ok(null);
     }
 
+    /** 
+     * 批量删除系统配置
+     *
+     * @param ids 配置ID
+     * @return 操作结果
+     */
+    @Operation(summary = "批量删除系统配置")
+    @DeleteMapping("/batch")
+    @PreAuthorize("hasAuthority('system:config:delete')")
+    public R<Void> deleteBatch(@Parameter(description = "配置ID") @RequestBody List<Long> ids) {
+        systemConfigService.removeBatchByIds(ids);
+        return R.ok(null);
+    }
+
     /**
      * 获取配置值
      *
@@ -113,6 +130,7 @@ public class SystemConfigController {
      */
     @Operation(summary = "获取配置值")
     @GetMapping("/value/{configKey}")
+    @PreAuthorize("hasAuthority('system:config:view')")
     public R<String> getConfigValue(@Parameter(description = "配置键") @PathVariable String configKey) {
         return R.ok(systemConfigService.getConfigValue(configKey));
     }

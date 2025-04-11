@@ -92,6 +92,13 @@ public class SysPermissionController {
         return R.ok(null);
     }
 
+    @Operation(summary = "批量删除权限")
+    @DeleteMapping("/batch")
+    public R<Void> deleteBatch(@Parameter(description = "权限ID") @RequestBody List<Long> ids) {
+        permissionService.removeBatchByIds(ids);
+        return R.ok(null);
+    }
+
     @Operation(summary = "根据用户ID查询权限列表")
     @GetMapping("/user/{userId}")
     public R<List<SysPermission>> getUserPermissions(@Parameter(description = "用户ID") @PathVariable Long userId) {

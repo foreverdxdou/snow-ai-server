@@ -1,6 +1,7 @@
 package com.dxdou.snowai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.dxdou.snowai.domain.dto.EmbeddingConfigDTO;
 import com.dxdou.snowai.domain.entity.EmbeddingConfig;
 import com.dxdou.snowai.domain.vo.EmbeddingConfigVO;
@@ -10,7 +11,7 @@ import com.dxdou.snowai.domain.vo.EmbeddingConfigVO;
  *
  * @author foreverdxdou
  */
-public interface EmbeddingConfigService {
+public interface EmbeddingConfigService extends IService<EmbeddingConfig> {
 
     /**
      * 分页查询Embedding模型配置列表
