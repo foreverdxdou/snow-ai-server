@@ -34,4 +34,9 @@ public class RegisterRequest {
      */
     @NotBlank(message = "邮箱不能为空")
     private String email;
+
+    /**
+     * 手机号
+     */
+    private String phone;
 }

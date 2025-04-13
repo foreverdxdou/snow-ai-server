@@ -6,10 +6,12 @@ import com.dxdou.snowai.domain.entity.SysUser;
 import com.dxdou.snowai.service.AuthService;
 import com.dxdou.snowai.service.SysUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -29,9 +31,34 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String login(String username, String password) {
-        // 进行身份认证
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password));
+        Authentication authentication = null;
+        try {
+            // 进行身份认证
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
+        } catch (UsernameNotFoundException e) {
+            // 用户不存在仍然返回用户名/密码错误
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "Invalid username or password");
+        } catch (BadCredentialsException e) {
+            // 处理用户名/密码错误
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "Invalid username or password");
+        } catch (DisabledException e) {
+            // 处理账户禁用
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "Account is disabled");
+        } catch (LockedException e) {
+            // 处理账户锁定
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "Account is locked");
+        } catch (AccountExpiredException e) {
+            // 处理账户过期
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "Account has expired");
+        } catch (CredentialsExpiredException e) {
+            // 处理密码过期
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "Password has expired");
+        } catch (AuthenticationException e) {
+            // 兜底处理其他认证异常（如服务内部错误）
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Authentication failed");
+        }
 
         // 设置认证信息到Security上下文
         SecurityContextHolder.getContext().setAuthentication(authentication);

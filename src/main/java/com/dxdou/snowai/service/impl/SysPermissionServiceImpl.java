@@ -23,8 +23,8 @@ public class SysPermissionServiceImpl extends ServiceImpl<SysPermissionMapper, S
     private final SysPermissionMapper permissionMapper;
 
     @Override
-    public List<SysPermissionVO> getPermissionTree(Long parentId, Integer type, Integer status) {
-        return permissionMapper.selectPermissionTree(parentId, type, status);
+    public List<SysPermissionVO> getPermissionTree(Long parentId, Integer type, Integer status, String name) {
+        return permissionMapper.selectPermissionTree(parentId, type, status, name);
     }
 
     @Override

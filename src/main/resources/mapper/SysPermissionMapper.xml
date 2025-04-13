@@ -28,11 +28,17 @@
         select p.id, p.parent_id, p.name, p.type, p.permission_code, p.path, p.component, p.icon,
         p.sort, p.status, p.create_time, p.update_time, case when exists(select 1 from
         sys_permission where parent_id = p.id and deleted = 0) then 1 else 0 end as has_children
-        from sys_permission p where p.deleted = 0 <if test="parentId != null"> and p.parent_id =
-        #{parentId} </if>
-        <if test="type != null"> and p.type = #{type} </if>
+        from sys_permission p where p.deleted = 0
+        <if test="parentId != null">and p.parent_id =
+            #{parentId}
+        </if>
+        <if test="type != null">and p.type = #{type}</if>
+        <if test="name != null">and p.name like concat('%', #{name}, '%')</if>
         <if
-            test="status != null"> and p.status = #{status} </if> order by p.sort asc </select>
+                test="status != null">and p.status = #{status}
+        </if>
+        order by p.sort asc
+    </select>
 
     <!-- 根据用户ID查询权限列表 -->
     <select id="selectUserPermissions" resultType="com.dxdou.snowai.domain.entity.SysPermission">

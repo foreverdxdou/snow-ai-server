@@ -19,9 +19,10 @@ public interface SysPermissionService extends IService<SysPermission> {
      * @param parentId 父权限ID
      * @param type     权限类型
      * @param status   状态
+     * @param name
      * @return 权限树
      */
-    List<SysPermissionVO> getPermissionTree(Long parentId, Integer type, Integer status);
+    List<SysPermissionVO> getPermissionTree(Long parentId, Integer type, Integer status, String name);
 
     /**
      * 根据用户ID查询权限列表

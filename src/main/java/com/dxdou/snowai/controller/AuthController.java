@@ -52,6 +52,7 @@ public class AuthController {
         user.setPassword(request.getPassword());
         user.setNickname(request.getNickname());
         user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
         user.setStatus(1);
         authService.register(user);
         return R.ok(null);

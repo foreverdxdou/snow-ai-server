@@ -22,10 +22,11 @@ public interface SysPermissionMapper extends BaseMapper<SysPermission> {
      * @param parentId 父权限ID
      * @param type     权限类型
      * @param status   状态
+     * @param name
      * @return 权限树
      */
     List<SysPermissionVO> selectPermissionTree(@Param("parentId") Long parentId, @Param("type") Integer type,
-            @Param("status") Integer status);
+                                               @Param("status") Integer status, String name);
 
     /**
      * 根据用户ID查询权限列表

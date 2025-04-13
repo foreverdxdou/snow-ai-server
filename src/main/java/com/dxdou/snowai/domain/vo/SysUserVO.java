@@ -57,9 +57,9 @@ public class SysUserVO {
     private Long deptId;
 
     /**
-     * 状态（1：正常，0：禁用）
+     * 状态（0：禁用，1：正常，2：锁定，3：账户过期，4：密码过期）
      */
-    @Schema(description = "用户状态：1-正常，0-禁用")
+    @Schema(description = "用户状态：0-禁用，1-正常，2-锁定，3-账户过期，4-密码过期")
     private Integer status;
 
     /**

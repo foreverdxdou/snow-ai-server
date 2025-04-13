@@ -49,7 +49,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         // 保存角色权限关联
         if (permissionIds != null && permissionIds.length > 0) {
-            List<SysRolePermission> rolePermissions = Arrays.stream(permissionIds)
+            List<SysRolePermission> rolePermissions = Arrays.stream(permissionIds).distinct()
                     .map(permissionId -> {
                         SysRolePermission rolePermission = new SysRolePermission();
                         rolePermission.setRoleId(role.getId());
@@ -80,7 +80,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
         // 保存新的权限关联
         if (permissionIds != null && permissionIds.length > 0) {
-            List<SysRolePermission> rolePermissions = Arrays.stream(permissionIds)
+            List<SysRolePermission> rolePermissions = Arrays.stream(permissionIds).distinct()
                     .map(permissionId -> {
                         SysRolePermission rolePermission = new SysRolePermission();
                         rolePermission.setRoleId(role.getId());

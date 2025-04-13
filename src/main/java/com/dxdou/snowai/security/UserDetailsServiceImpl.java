@@ -4,6 +4,10 @@ import com.dxdou.snowai.domain.entity.SysUser;
 import com.dxdou.snowai.service.SysUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.authentication.AccountExpiredException;
+import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,6 +36,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         SysUser user = userService.getByUsername(username);
         if (user == null) {
             throw new UsernameNotFoundException("用户不存在");
+        }else if (user.getStatus() == 0) {
+            throw new DisabledException("用户已被禁用");
+        } else if (user.getStatus() == 2) {
+            throw new LockedException("用户已被锁定");
+        } else if (user.getStatus() == 3) {
+            throw new AccountExpiredException("用户账户已过期");
+        } else if (user.getStatus() == 4) {
+            throw new CredentialsExpiredException("用户密码已过期");
         }
 
         // 查询用户角色
@@ -53,7 +65,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         authorities.addAll(permissions.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList()));
-        
+
         return new User(user.getUsername(), user.getPassword(), authorities);
     }
 }

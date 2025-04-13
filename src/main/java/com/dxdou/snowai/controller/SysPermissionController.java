@@ -36,9 +36,10 @@ public class SysPermissionController {
     @GetMapping("/tree")
     public R<List<SysPermissionVO>> getPermissionTree(
             @Parameter(description = "父权限ID") @RequestParam(required = false) Long parentId,
+            @Parameter(description = "名称") @RequestParam(required = false) String name,
             @Parameter(description = "权限类型") @RequestParam(required = false) Integer type,
             @Parameter(description = "状态") @RequestParam(required = false) Integer status) {
-        return R.ok(permissionService.getPermissionTree(parentId, type, status));
+        return R.ok(permissionService.getPermissionTree(parentId, type, status, name));
     }
 
     @Operation(summary = "查询权限树（前端树形控件专用）")
@@ -46,8 +47,9 @@ public class SysPermissionController {
     public R<List<SysPermissionTreeVO>> getPermissionTreeForSelect(
             @Parameter(description = "父权限ID") @RequestParam(required = false) Long parentId,
             @Parameter(description = "权限类型") @RequestParam(required = false) Integer type,
+            @Parameter(description = "名称") @RequestParam(required = false) String name,
             @Parameter(description = "状态") @RequestParam(required = false) Integer status) {
-        List<SysPermissionVO> permissionTree = permissionService.getPermissionTree(parentId, type, status);
+        List<SysPermissionVO> permissionTree = permissionService.getPermissionTree(parentId, type, status, name);
         List<SysPermissionTreeVO> treeVO = convertToTreeVO(permissionTree);
         return R.ok(treeVO);
     }
@@ -155,10 +157,10 @@ public class SysPermissionController {
      */
     private SysPermissionTreeVO convertToTreeVO(SysPermissionVO permissionVO) {
         SysPermissionTreeVO treeVO = new SysPermissionTreeVO();
+        BeanUtils.copyProperties(permissionVO, treeVO);
         treeVO.setId(String.valueOf(permissionVO.getId()));
         treeVO.setItemId(String.valueOf(permissionVO.getId()));
         treeVO.setParentId(permissionVO.getParentId() != null ? String.valueOf(permissionVO.getParentId()) : null);
-        treeVO.setName(permissionVO.getName());
         return treeVO;
     }
 }

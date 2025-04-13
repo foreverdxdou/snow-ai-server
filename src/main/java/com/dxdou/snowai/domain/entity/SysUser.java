@@ -61,7 +61,7 @@ public class SysUser {
     private Long deptId;
 
     /**
-     * 状态（1：正常，0：禁用）
+     * 状态（1：正常，0：禁用 2：锁定 3：用户账户已过期 4：用户密码已过期）
      */
     private Integer status;
 
