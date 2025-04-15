@@ -18,12 +18,14 @@ import com.dxdou.snowai.domain.vo.KbTagVO;
 import com.dxdou.snowai.mapper.KbDocumentMapper;
 import com.dxdou.snowai.mapper.KbDocumentTagMapper;
 import com.dxdou.snowai.mapper.KbDocumentVersionMapper;
+import com.dxdou.snowai.pipeline.TextCleaningPipeline;
 import com.dxdou.snowai.service.KbDocumentService;
 import com.dxdou.snowai.service.KbSearchService;
 import com.dxdou.snowai.service.MinioService;
 import com.dxdou.snowai.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.hslf.usermodel.HSLFShape;
@@ -47,7 +49,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
@@ -70,6 +75,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
     private final SystemConfigService systemConfigService;
     private final ElasticsearchOperations elasticsearchTemplate;
     private final Executor asyncExecutor;
+    private final TextCleaningPipeline textCleaningPipeline;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -80,6 +86,17 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
 
             // 2. 解析文档内容
             String content = parseDocumentContent(file);
+
+            // 3. 数据清洗
+            content = textCleaningPipeline.process(content);
+            if (StringUtils.isBlank(content)) {
+                log.info("文档内容为空，跳过索引创建");
+                KbDocumentVO vo = new KbDocumentVO();
+                vo.setTitle(file.getOriginalFilename());
+                vo.setContent(content);
+                vo.setKbId(kbId);
+                return vo;
+            }
 
             KbDocument dbDocument = documentMapper
                     .selectOne(Wrappers.lambdaQuery(KbDocument.class)
@@ -95,7 +112,7 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
                 return this.updateDocument(dbDocument.getId(), dto);
             }
 
-            // 3. 保存文档信息
+            // 4. 保存文档信息
             KbDocument document = new KbDocument();
             document.setTitle(file.getOriginalFilename());
             document.setContent(content);
@@ -134,15 +151,15 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
             document.setCreatorId(creatorId);
             documentMapper.insert(document);
 
-            // 4. 保存文档版本
+            // 5. 保存文档版本
             saveDocumentVersion(document);
 
-            // 5. 保存文档标签关联
+            // 6. 保存文档标签关联
             if (tagIds != null && !tagIds.isEmpty()) {
                 saveDocumentTags(document.getId(), tagIds);
             }
 
-            // 5. 转换为VO并返回
+            // 7. 转换为VO并返回
             return convertToVO(document);
         } catch (Exception e) {
             log.error("上传文档失败", e);
@@ -452,40 +469,6 @@ public class KbDocumentServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocum
             }
             return content.toString();
         }
-    }
-
-    /**
-     * 将文档内容分块
-     *
-     * @param content 文档内容
-     * @return 文本块列表
-     */
-    private List<String> splitContentIntoChunks(String content) {
-        List<String> chunks = new ArrayList<>();
-        int chunkSize = 500; // 每个块的最大字符数
-        int overlap = 100; // 块之间的重叠字符数
-
-        int start = 0;
-        while (start < content.length()) {
-            int end = Math.min(start + chunkSize, content.length());
-
-            // 如果不是最后一块，尝试在句子边界分割
-            if (end < content.length()) {
-                int lastPeriod = content.lastIndexOf("。", end);
-                int lastQuestion = content.lastIndexOf("？", end);
-                int lastExclamation = content.lastIndexOf("！", end);
-
-                int lastBreak = Math.max(Math.max(lastPeriod, lastQuestion), lastExclamation);
-                if (lastBreak > start) {
-                    end = lastBreak + 1;
-                }
-            }
-
-            chunks.add(content.substring(start, end));
-            start = end - overlap;
-        }
-
-        return chunks;
     }
 
     /**

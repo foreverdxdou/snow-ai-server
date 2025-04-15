@@ -18,6 +18,7 @@ import com.dxdou.snowai.mapper.KbDocumentMapper;
 import com.dxdou.snowai.mapper.KbDocumentVectorMapper;
 import com.dxdou.snowai.service.EmbeddingConfigService;
 import com.dxdou.snowai.service.KbSearchService;
+import com.dxdou.snowai.utils.TextChunkUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import lombok.RequiredArgsConstructor;
@@ -229,11 +230,11 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
         documentVectorMapper.deleteByDocumentId(docId);
 
         // 3. 将文档内容分块
-        List<DocumentChunk> chunks = splitDocumentIntoChunks(document.getContent());
+        List<TextChunkUtil.DocumentChunk> chunks = TextChunkUtil.chunkContent(document.getContent());
 
         // 4. 为每个块生成向量并保存
         for (int i = 0; i < chunks.size(); i++) {
-            DocumentChunk documentChunk = chunks.get(i);
+            TextChunkUtil.DocumentChunk documentChunk = chunks.get(i);
             float[] vector;
 
             if (useEmbedding) {
@@ -252,58 +253,6 @@ public class KbSearchServiceImpl extends ServiceImpl<KbDocumentMapper, KbDocumen
 
             documentVectorMapper.insert(documentVector);
         }
-    }
-
-    private static class DocumentChunk {
-        int index;
-        String content;
-
-        DocumentChunk(int index, String content) {
-            this.index = index;
-            this.content = content;
-        }
-    }
-
-    private List<DocumentChunk> splitDocumentIntoChunks(String content) {
-        List<DocumentChunk> chunks = new ArrayList<>();
-
-        // 1. 首先按自然段落分割
-        String[] paragraphs = content.split("\n\n");
-
-        StringBuilder currentChunk = new StringBuilder();
-        int currentIndex = 0;
-
-        for (String paragraph : paragraphs) {
-            // 如果当前块加上新段落超过了块大小
-            if (currentChunk.length() + paragraph.length() > CHUNK_SIZE) {
-                // 保存当前块
-                if (currentChunk.length() > 0) {
-                    chunks.add(new DocumentChunk(currentIndex++, currentChunk.toString().trim()));
-
-                    // 保留最后一部分作为重叠
-                    if (currentChunk.length() > CHUNK_OVERLAP) {
-                        String overlap = currentChunk.substring(
-                                Math.max(0, currentChunk.length() - CHUNK_OVERLAP));
-                        currentChunk = new StringBuilder(overlap);
-                    } else {
-                        currentChunk = new StringBuilder();
-                    }
-                }
-            }
-
-            // 添加新段落
-            if (currentChunk.length() > 0) {
-                currentChunk.append("\n\n");
-            }
-            currentChunk.append(paragraph);
-        }
-
-        // 添加最后一个块
-        if (currentChunk.length() > 0) {
-            chunks.add(new DocumentChunk(currentIndex, currentChunk.toString().trim()));
-        }
-
-        return chunks;
     }
 
     /**
