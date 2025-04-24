@@ -30,12 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
-
-    @Bean
-    public Executor asyncExecutor() {
-        return Executors.newCachedThreadPool();
-    }
-
+    
     @Bean
     public WebClient webClient() {
         return WebClient.builder()

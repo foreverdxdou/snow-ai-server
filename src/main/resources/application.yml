@@ -2,8 +2,12 @@ server:
   port: 8080
 
 spring:
+  banner:
+    location: "classpath:banner.txt"
   application:
-    name: snow-ai-server
+    name: snow-ai
+  profiles:
+    active: default
   # 增加上传文件大小限制
   servlet:
     multipart:
@@ -47,22 +51,32 @@ spring:
           max-idle: 8
           max-active: 8
           max-wait: -1ms
-  profiles:
-    active:
 
 # MyBatis-Plus配置
 mybatis-plus:
   configuration:
     # 日志配置
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: com.dxdou.snowai.config.MybatisPlusConfig$CustomStdOutImpl
     # 驼峰命名转换
     map-underscore-to-camel-case: true
+    # 打印完整SQL
+    log-sql: true
+    # 打印SQL参数
+    log-parameters: true
+    # 打印SQL执行时间
+    log-execution-time: true
+    # 打印SQL执行结果
+    log-result: true
+    # 打印SQL格式化
+    log-formatted: true
   global-config:
     db-config:
       # 逻辑删除配置
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+    # 开启SQL性能分析
+    sql-parser-cache: false
   # XML文件位置
   mapper-locations: classpath*:/mapper/**/*.xml
   # 实体类包路径
@@ -109,3 +123,9 @@ knife4j:
     swagger-model-name: 实体类列表
     enable-version: false
     enable-reload-cache-parameter: false
+
+java:
+  version: 17.0.9
+
+snow-ai:
+  version: 1.0.0

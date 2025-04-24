@@ -14,11 +14,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -26,6 +27,7 @@ import java.util.List;
  *
  * @author foreverdxdou
  */
+@Slf4j
 @Tag(name = "知识库问答系统")
 @RestController
 @RequestMapping("/api/v1/kb/qa")
@@ -51,7 +53,7 @@ public class KbQaController {
             @Parameter(description = "知识库ID列表") @RequestParam(required = false) Long[] kbIds,
             @RequestBody QaRequest request, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-transform"); // 禁止代理修改
-        return qaService.streamChat(kbIds, request,response);
+        return qaService.streamChat(kbIds, request, response);
     }
 
     @Operation(summary = "通用问答")
@@ -64,9 +66,10 @@ public class KbQaController {
     @Operation(summary = "通用流式问答")
     @PostMapping(value = "/general/stream")
     @PreAuthorize("hasAuthority('kb:qa:general')")
-    public SseEmitter streamGeneralChat(@RequestBody QaRequest request, HttpServletResponse response) {
+    public SseEmitter streamGeneralChat(@RequestBody QaRequest request, HttpServletResponse response) throws IOException {
         response.setHeader("Cache-Control", "no-transform"); // 禁止代理修改
         return qaService.streamGeneralChat(request);
+//        return qaService.sendMsg();
     }
 
     @Operation(summary = "获取用户对话历史列表")

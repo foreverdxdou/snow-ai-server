@@ -93,4 +93,6 @@ public interface KbQaService {
      * @param userId
      */
     void clearChatHistoryByUser(Long userId);
+
+    SseEmitter sendMsg();
 }

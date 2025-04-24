@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.1</version>
+        <version>3.2.2</version>
         <relativePath />
     </parent>
 
@@ -67,7 +67,15 @@
         <dependency>
             <groupId>edu.stanford.nlp</groupId>
             <artifactId>stanford-corenlp</artifactId>
-            <version>4.5.4</version>
+            <version>4.5.9</version>
+        </dependency>
+
+        <!-- NLP工具 -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>4.5.9</version>
+            <classifier>models</classifier>
         </dependency>
 
         <!-- Lombok -->
@@ -149,13 +157,6 @@
             <version>${hutool.version}</version>
         </dependency>
 
-        <!-- NLP工具 -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>4.5.4</version>
-            <classifier>models</classifier>
-        </dependency>
         <!-- 文本相似度计算 -->
         <dependency>
             <groupId>org.apache.commons</groupId>

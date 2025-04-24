@@ -1,6 +1,10 @@
 package com.dxdou.snowai.config;
 
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Properties;
 
 /**
  * NLP配置类
@@ -32,11 +36,11 @@ public class NlpConfig {
 //        return new StanfordCoreNLP(props);
 //    }
 
-//    @Bean
-//    public StanfordCoreNLP stanfordCoreNLP() {
-//        Properties props = new Properties();
-//        props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
-//        props.setProperty("coref.algorithm", "neural");
-//        return new StanfordCoreNLP(props);
-//    }
+    @Bean
+    public StanfordCoreNLP stanfordCoreNLP() {
+        Properties props = new Properties();
+        props.setProperty("annotators", "tokenize,ssplit,pos,lemma");
+        props.setProperty("coref.algorithm", "neural");
+        return new StanfordCoreNLP(props);
+    }
 }
