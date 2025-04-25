@@ -1,9 +1,9 @@
 package com.dxdou.snowai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.json.JSONObject;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -158,10 +158,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             }
             isCompleted.set(true);
             try {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("content", "Stream error occurred");
                 emitter.send(SseEmitter.event()
-                        .id(String.valueOf(System.currentTimeMillis()))
                         .name("error")
-                        .data("Stream error occurred")
+                        .data(jsonObject)
                         .build());
                 emitter.completeWithError(throwable);
             } catch (IOException e) {
@@ -280,10 +281,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             }
             isCompleted.set(true);
             try {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("content", "Stream error occurred");
                 emitter.send(SseEmitter.event()
-                        .id(String.valueOf(System.currentTimeMillis()))
                         .name("error")
-                        .data("Stream error occurred")
+                        .data(jsonObject)
                         .build());
                 emitter.completeWithError(throwable);
             } catch (IOException e) {
@@ -353,10 +355,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                     .doOnComplete(() -> {
                         if (!isCompleted.get()) {
                             try {
+                                JSONObject jsonObject = new JSONObject();
+                                jsonObject.put("content", "Stream completed");
                                 emitter.send(SseEmitter.event()
-                                        .id(String.valueOf(System.currentTimeMillis()))
                                         .name("complete")
-                                        .data("Stream completed")
+                                        .data(jsonObject)
                                         .build());
                                 emitter.complete();
                             } catch (IOException e) {
@@ -371,10 +374,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         log.error("Stream error", error);
                         if (!isCompleted.get()) {
                             try {
+                                JSONObject jsonObject = new JSONObject();
+                                jsonObject.put("content", "Stream error: " + error.getMessage());
                                 emitter.send(SseEmitter.event()
-                                        .id(String.valueOf(System.currentTimeMillis()))
                                         .name("error")
-                                        .data("Stream error: " + error.getMessage())
+                                        .data(jsonObject)
                                         .build());
                                 emitter.complete();
                             } catch (IOException e) {
@@ -387,10 +391,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             log.error("Error in stream processing", e);
             if (!isCompleted.get()) {
                 try {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("content", "Stream processing error: " + e.getMessage());
                     emitter.send(SseEmitter.event()
-                            .id(String.valueOf(System.currentTimeMillis()))
                             .name("error")
-                            .data("Stream processing error: " + e.getMessage())
+                            .data(jsonObject)
                             .build());
                     emitter.complete();
                 } catch (IOException ex) {
@@ -406,10 +411,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         try {
             if ("[DONE]".equals(chunk)) {
                 if (!isCompleted.get()) {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("content", "[DONE]");
                     emitter.send(SseEmitter.event()
-                            .id(String.valueOf(System.currentTimeMillis()))
                             .name("done")
-                            .data("[DONE]")
+                            .data(jsonObject)
                             .build());
                 }
                 return;
@@ -455,10 +461,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             log.error("处理流式响应失败", e);
             if (!isCompleted.get()) {
                 try {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("content", "处理响应失败: " + e.getMessage());
                     emitter.send(SseEmitter.event()
-                            .id(String.valueOf(System.currentTimeMillis()))
                             .name("error")
-                            .data("处理响应失败: " + e.getMessage())
+                            .data(jsonObject)
                             .build());
                 } catch (IOException ex) {
                     log.error("发送错误事件失败", ex);
@@ -500,10 +507,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                                 answer.append(content);
                                 if (!isCompleted.get()) {
                                     log.info("推理过程: " + content);
+                                    JSONObject jsonObject = new JSONObject();
+                                    jsonObject.put("content", content);
                                     emitter.send(SseEmitter.event()
-                                            .id(String.valueOf(System.currentTimeMillis()))
                                             .name(choiceMsgs[0])
-                                            .data(content)
+                                            .data(jsonObject)
                                             .build());
                                 }
                             }
@@ -517,10 +525,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                             answer.append(content);
                             log.info("结论: " + content);
                             if (!isCompleted.get()) {
+                                JSONObject jsonObject = new JSONObject();
+                                jsonObject.put("content", content);
                                 emitter.send(SseEmitter.event()
-                                        .id(String.valueOf(System.currentTimeMillis()))
                                         .name(choiceMsgs[0])
-                                        .data(content)
+                                        .data(jsonObject)
                                         .build());
                             }
                         }
@@ -552,10 +561,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                         answer.append(content);
                         answerList.add(content);
                         if (!isCompleted.get()) {
+                            JSONObject jsonObject = new JSONObject();
+                            jsonObject.put("content", content);
                             emitter.send(SseEmitter.event()
-                                    .id(String.valueOf(System.currentTimeMillis()))
                                     .name(choiceMsgs[0])
-                                    .data(content)
+                                    .data(jsonObject)
                                     .build());
                         }
                     }
@@ -568,10 +578,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             if (chunkResponse.containsKey("done")) {
                 if ((Boolean) chunkResponse.get("done")) {
                     if (!isCompleted.get()) {
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("content", "[DONE]");
                         emitter.send(SseEmitter.event()
-                                .id(String.valueOf(System.currentTimeMillis()))
                                 .name("done")
-                                .data("[DONE]")
+                                .data(jsonObject)
                                 .build());
                     }
                 }
@@ -580,10 +591,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             answer.append(response);
             answerList.add(response);
             if (!isCompleted.get()) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("content", response);
                 emitter.send(SseEmitter.event()
-                        .id(String.valueOf(System.currentTimeMillis()))
                         .name(choiceMsgs[0])
-                        .data(response)
+                        .data(jsonObject)
                         .build());
             }
         }
@@ -643,10 +655,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
         // 设置错误回调
         emitter.onError(throwable -> {
             try {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("content", "Stream error occurred");
                 emitter.send(SseEmitter.event()
-                        .id(String.valueOf(System.currentTimeMillis()))
                         .name("error")
-                        .data("Stream error occurred")
+                        .data(jsonObject)
                         .build());
                 emitter.completeWithError(throwable);
             } catch (IOException e) {
@@ -657,18 +670,19 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             String textArray = "[\"<think>好的\",\"结合\",\"代码\",\"示例\",\"，\",\"说明\",\"如何\",\"实现\",\"流\",\"式\",\"输出的\",\"滚动\",\"动画\",\"效果\",\"。\",\"可能需要\",\"分\",\"后端\",\"和\",\"前端\",\"部分\",\"，\",\"但\",\"用户\",\"可能\",\"更\",\"关注\",\"前端\",\"实现\",\"，\",\"假设\",\"后端\",\"已经\",\"处理\",\"了\",\"流\",\"式\",\"数据的\",\"推送\",\"。\",\"</think>以下是\",\"结合\",\"代码\",\"实现\",\" Gro\",\"k\",\" \",\"流\",\"式\",\"输出\",\"滚动\",\"推理\",\"动画\",\"的技术\",\"方案\",\"，\",\"我将\",\"通过\",\"分\",\"步\",\"说明\",\"和\",\"代码\",\"注释\",\"为您\",\"讲解\",\"关键\",\"实现\",\"点\",\"：\\n\\n\",\"---\\n\\n\",\"###\",\" \",\"一\",\"、\",\"技术\",\"实现\",\"原理\",\"\\n\\n\",\"![\",\"流\",\"式\",\"输出\",\"示意图\",\"](\",\"https\",\"://\",\"example\",\".com\",\"/\",\"stream\",\"ing\",\"-an\",\"imation\",\".png\",\")\\n\",\"1\",\".\",\" **\",\"数据\",\"流\",\"传输\",\"**\",\"：\",\"使用\",\" Server\",\"-S\",\"ent\",\" Events\",\" (\",\"SS\",\"E\",\")\",\" \",\"实现\",\"服务器\",\"到\",\"客户\",\"端的\",\"持续\",\"数据\",\"推送\",\"\\n\",\"2\",\".\",\" **\",\"动态\",\"渲染\",\"**\",\"：\",\"通过\",\" JavaScript\",\" \",\"动态\",\"追加\",\"内容\",\"元素\",\"\\n\",\"3\",\".\",\" **\",\"滚动\",\"控制\",\"**\",\"：\",\"使用\",\" CSS\",\" \",\"动画\",\" +\",\" JavaScript\",\" \",\"滚动\",\" API\",\" \",\"实现\",\"平滑\",\"滚动\",\"效果\",\"\\n\\n\",\"---\\n\\n\",\"###\",\" \",\"二\",\"、\",\"完整\",\"代码\",\"示例\",\"\\n\\n\",\"```\",\"html\",\"\\n\",\"<!--\",\" \",\"前端\",\"部分\",\" -->\\n\",\"<div\",\" id\",\"=\\\"\",\"g\",\"rok\",\"-output\",\"\\\"\",\" class\",\"=\\\"\",\"stream\",\"-container\",\"\\\"></\",\"div\",\">\\n\\n\",\"<style\",\">\\n\",\"/*\",\" \",\"容器\",\"样式\",\"与\",\"滚动\",\"动画\",\" */\\n\",\".stream\",\"-container\",\" {\\n\",\" \",\" height\",\":\",\" \",\"60\",\"vh\",\";\\n\",\" \",\" overflow\",\"-y\",\":\",\" auto\",\";\\n\",\" \",\" scroll\",\"-be\",\"havior\",\":\",\" smooth\",\";\",\" /*\",\" \",\"启用\",\"平滑\",\"滚动\",\" */\\n\",\" \",\" background\",\":\",\" #\",\"1\",\"a\",\"1\",\"a\",\"1\",\"a\",\";\\n\",\" \",\" padding\",\":\",\" \",\"20\",\"px\",\";\\n\",\" \",\" border\",\"-radius\",\":\",\" \",\"8\",\"px\",\";\\n\",\"}\\n\\n\",\"/*\",\" \",\"单\",\"条\",\"消息\",\"动画\",\" */\",\"\\n\",\".message\",\"-entry\",\" {\\n\",\" \",\" animation\",\":\",\" slide\",\"In\",\" \",\"0\",\".\",\"3\",\"s\",\" ease\",\"-out\",\";\\n\",\" \",\" margin\",\"-bottom\",\":\",\" \",\"12\",\"px\",\";\\n\",\" \",\" color\",\":\",\" #\",\"c\",\"9\",\"d\",\"1\",\"d\",\"9\",\";\\n\",\" \",\" line\",\"-height\",\":\",\" \",\"1\",\".\",\"6\",\";\\n\",\"}\\n\\n\",\"@\",\"key\",\"frames\",\" slide\",\"In\",\" {\\n\",\" \",\" from\",\" {\\n\",\"   \",\" opacity\",\":\",\" \",\"0\",\";\\n\",\"   \",\" transform\",\":\",\" translate\",\"Y\",\"(\",\"20\",\"px\",\");\\n\",\" \",\" }\\n\",\" \",\" to\",\" {\\n\",\"   \",\" opacity\",\":\",\" \",\"1\",\";\\n\",\"   \",\" transform\",\":\",\" translate\",\"Y\",\"(\",\"0\",\");\\n\",\" \",\" }\\n\",\"}\\n\",\"</\",\"style\",\">\\n\\n\",\"<script\",\">\\n\",\"const\",\" output\",\"Container\",\" =\",\" document\",\".getElementById\",\"('\",\"g\",\"rok\",\"-output\",\"');\\n\",\"let\",\" is\",\"Sc\",\"rolling\",\" =\",\" false\",\";\\n\\n\",\"//\",\" \",\"1\",\".\",\" \",\"建立\",\" SSE\",\" \",\"连接\",\"\\n\",\"const\",\" event\",\"Source\",\" =\",\" new\",\" Event\",\"Source\",\"('/\",\"stream\",\"/g\",\"rok\",\"');\\n\\n\",\"//\",\" \",\"2\",\".\",\" \",\"处理\",\"数据\",\"到达\",\"\\n\",\"event\",\"Source\",\".on\",\"message\",\" =\",\" (\",\"event\",\")\",\" =>\",\" {\\n\",\" \",\" const\",\" message\",\" =\",\" JSON\",\".parse\",\"(event\",\".data\",\");\\n\",\" \",\" append\",\"Message\",\"(message\",\".content\",\");\\n\",\"};\\n\\n\",\"//\",\" \",\"3\",\".\",\" \",\"动态\",\"追加\",\"消息\",\"\\n\",\"function\",\" append\",\"Message\",\"(content\",\")\",\" {\\n\",\" \",\" const\",\" fragment\",\" =\",\" document\",\".create\",\"Document\",\"Fragment\",\"();\\n\",\" \",\" const\",\" entry\",\" =\",\" document\",\".createElement\",\"('\",\"div\",\"');\\n\",\"  \\n\",\" \",\" //\",\" \",\"逐\",\"字符\",\"动画\",\"\\n\",\" \",\" let\",\" char\",\"Index\",\" =\",\" \",\"0\",\";\\n\",\" \",\" const\",\" char\",\"Interval\",\" =\",\" set\",\"Interval\",\"(()\",\" =>\",\" {\\n\",\"   \",\" if\",\"(char\",\"Index\",\" >=\",\" content\",\".length\",\")\",\" {\\n\",\"     \",\" clear\",\"Interval\",\"(char\",\"Interval\",\");\\n\",\"     \",\" return\",\";\\n\",\"   \",\" }\\n\",\"   \",\" entry\",\".text\",\"Content\",\" +=\",\" content\",\".charAt\",\"(char\",\"Index\",\");\\n\",\"   \",\" char\",\"Index\",\"++;\\n\",\"   \",\" maintain\",\"Scroll\",\"();\",\" //\",\" \",\"维持\",\"滚动\",\"位置\",\"\\n\",\" \",\" },\",\" \",\"30\",\");\",\" //\",\" \",\"调整\",\"速度\",\"\\n  \\n\",\" \",\" entry\",\".class\",\"Name\",\" =\",\" '\",\"message\",\"-entry\",\"';\\n\",\" \",\" fragment\",\".appendChild\",\"(\",\"entry\",\");\\n\",\" \",\" output\",\"Container\",\".appendChild\",\"(f\",\"ragment\",\");\\n\",\"}\\n\\n\",\"//\",\" \",\"4\",\".\",\" \",\"智能\",\"滚动\",\"控制\",\"\\n\",\"function\",\" maintain\",\"Scroll\",\"()\",\" {\\n\",\" \",\" if\",\"(output\",\"Container\",\".sc\",\"roll\",\"Top\",\" >\",\" output\",\"Container\",\".sc\",\"roll\",\"Height\",\" -\",\" output\",\"Container\",\".client\",\"Height\",\" -\",\" \",\"100\",\")\",\" {\\n\",\"   \",\" request\",\"Animation\",\"Frame\",\"(()\",\" =>\",\" {\\n\",\"     \",\" output\",\"Container\",\".sc\",\"roll\",\"Top\",\" =\",\" output\",\"Container\",\".sc\",\"roll\",\"Height\",\";\\n\",\"   \",\" });\\n\",\" \",\" }\\n\",\"}\\n\\n\",\"//\",\" \",\"5\",\".\",\" \",\"错误\",\"处理\",\"\\n\",\"event\",\"Source\",\".on\",\"error\",\" =\",\" ()\",\" =>\",\" {\\n\",\" \",\" console\",\".error\",\"('\",\"Stream\",\" connection\",\" lost\",\"');\\n\",\" \",\" event\",\"Source\",\".close\",\"();\\n\",\"};\\n\",\"</\",\"script\",\">\\n\",\"```\\n\\n\",\"---\\n\\n\",\"###\",\" \",\"三\",\"、\",\"核心\",\"实现\",\"逻辑\",\"分解\",\"\\n\\n\",\"1\",\".\",\" **\",\"流\",\"式\",\"连接\",\"建立\",\"**\\n\",\"```\",\"javascript\",\"\\n\",\"const\",\" event\",\"Source\",\" =\",\" new\",\" Event\",\"Source\",\"('/\",\"stream\",\"/g\",\"rok\",\"');\\n\",\"```\\n\",\"-\",\" \",\"创建\",\" SSE\",\" \",\"连接\",\"通道\",\"，\",\"服务\",\"端\",\"需\",\"保持\",\"长\",\"连接\",\"并\",\"定期\",\"发送\",\"`\",\"data\",\":`\",\"消息\",\"\\n\\n\",\"2\",\".\",\" **\",\"动态\",\"内容\",\"渲染\",\"**\\n\",\"```\",\"javascript\",\"\\n\",\"//\",\" \",\"使用\",\"文档\",\"片段\",\"优化\",\"渲染\",\"性能\",\"\\n\",\"const\",\" fragment\",\" =\",\" document\",\".create\",\"Document\",\"Fragment\",\"();\\n\\n\",\"//\",\" \",\"逐\",\"字符\",\"动画\",\"通过\",\"间隔\",\"定时\",\"器\",\"实现\",\"\\n\",\"let\",\" char\",\"Index\",\" =\",\" \",\"0\",\";\\n\",\"const\",\" char\",\"Interval\",\" =\",\" set\",\"Interval\",\"(()\",\" =>\",\" {\\n\",\" \",\" entry\",\".text\",\"Content\",\" +=\",\" content\",\".charAt\",\"(char\",\"Index\",\"++\",\");\\n\",\"},\",\" \",\"30\",\");\\n\",\"```\\n\",\"-\",\" \",\"使用\",\"`\",\"Document\",\"Fragment\",\"`\",\"减少\",\"重\",\"绘\",\"次数\",\"\\n\",\"-\",\" \",\"30\",\"ms\",\" \",\"间隔\",\"产生\",\"打字\",\"机\",\"效果\",\"（\",\"可根据\",\"需要\",\"调整\",\"）\\n\\n\",\"3\",\".\",\" **\",\"智能\",\"滚动\",\"策略\",\"**\\n\",\"```\",\"javascript\",\"\\n\",\"function\",\" maintain\",\"Scroll\",\"()\",\" {\\n\",\" \",\" const\",\" threshold\",\" =\",\" \",\"100\",\";\",\" //\",\" \",\"像素\",\"缓冲\",\"区间\",\"\\n\",\" \",\" const\",\" from\",\"Bottom\",\" =\",\" output\",\"Container\",\".sc\",\"roll\",\"Height\",\" -\",\" \\n\",\"                   \",\" output\",\"Container\",\".sc\",\"roll\",\"Top\",\" -\",\" \\n\",\"                   \",\" output\",\"Container\",\".client\",\"Height\",\";\\n\\n\",\" \",\" if\",\"(from\",\"Bottom\",\" <\",\" threshold\",\")\",\" {\\n\",\"   \",\" request\",\"Animation\",\"Frame\",\"(()\",\" =>\",\" {\\n\",\"     \",\" output\",\"Container\",\".sc\",\"roll\",\"Top\",\" =\",\" output\",\"Container\",\".sc\",\"roll\",\"Height\",\";\\n\",\"   \",\" });\\n\",\" \",\" }\\n\",\"}\\n\",\"```\\n\",\"-\",\" \",\"仅在\",\"用户\",\"未\",\"手动\",\"滚动\",\"时\",\"维持\",\"自动\",\"滚动\",\"\\n\",\"-\",\" \",\"使用\",\"`\",\"request\",\"Animation\",\"Frame\",\"`\",\"优化\",\"滚动\",\"性能\",\"\\n\\n\",\"4\",\".\",\" **\",\"动画\",\"效果\",\"实现\",\"**\\n\",\"```\",\"css\",\"\\n\",\"/*\",\" \",\"入场\",\"动画\",\" */\\n\",\"@\",\"key\",\"frames\",\" slide\",\"In\",\" {\\n\",\" \",\" from\",\" {\",\" opacity\",\":\",\" \",\"0\",\";\",\" transform\",\":\",\" translate\",\"Y\",\"(\",\"20\",\"px\",\");\",\" }\\n\",\" \",\" to\",\" {\",\" opacity\",\":\",\" \",\"1\",\";\",\" transform\",\":\",\" translate\",\"Y\",\"(\",\"0\",\");\",\" }\\n\",\"}\\n\\n\",\"/*\",\" \",\"平滑\",\"滚动\",\" */\\n\",\".stream\",\"-container\",\" {\\n\",\" \",\" scroll\",\"-be\",\"havior\",\":\",\" smooth\",\";\\n\",\" \",\" scroll\",\"-p\",\"adding\",\"-bottom\",\":\",\" \",\"20\",\"px\",\";\",\" /*\",\" \",\"预留\",\"滚动\",\"空间\",\" */\\n\",\"}\\n\",\"```\\n\\n\",\"---\\n\\n\",\"###\",\" \",\"四\",\"、\",\"性能\",\"优化\",\"技巧\",\"\\n\\n\",\"1\",\".\",\" **\",\"渲染\",\"优化\",\"**\\n\",\"-\",\" \",\"使用\",\"`\",\"will\",\"-change\",\":\",\" transform\",\"`\",\"提升\",\"动画\",\"元素\",\"性能\",\"\\n\",\"-\",\" \",\"对\",\"长\",\"内容\",\"进行\",\"分\",\"块\",\"渲染\",\"（\",\"每\",\" \",\"50\",\" \",\"行\",\"创建一个\",\"新\",\"片段\",\"）\\n\\n\",\"2\",\".\",\" **\",\"内存\",\"管理\",\"**\\n\",\"```\",\"javascript\",\"\\n\",\"//\",\" \",\"自动\",\"清理\",\"历史\",\"内容\",\"\\n\",\"const\",\" MAX\",\"_L\",\"INES\",\" =\",\" \",\"200\",\";\\n\",\"if\",\"(output\",\"Container\",\".children\",\".length\",\" >\",\" MAX\",\"_L\",\"INES\",\")\",\" {\\n\",\" \",\" output\",\"Container\",\".remove\",\"Child\",\"(output\",\"Container\",\".first\",\"Child\",\");\\n\",\"}\\n\",\"```\\n\\n\",\"3\",\".\",\" **\",\"网络\",\"优化\",\"**\\n\",\"-\",\" \",\"服务\",\"端\",\"启用\",\" g\",\"zip\",\" \",\"压缩\",\"\\n\",\"-\",\" \",\"设置\",\"合适的\",\" SSE\",\" \",\"重\",\"连\",\"超\",\"时\",\"（\",\"默认\",\" \",\"3\",\" \",\"秒\",\"）\\n\\n\",\"---\\n\\n\",\"###\",\" \",\"五\",\"、\",\"扩展\",\"能力\",\"\\n\\n\",\"1\",\".\",\" **\",\"交互\",\"增强\",\"**\\n\",\"```\",\"javascript\",\"\\n\",\"//\",\" \",\"允许\",\"暂停\",\"滚动\",\"\\n\",\"let\",\" auto\",\"Scroll\",\" =\",\" true\",\";\\n\\n\",\"output\",\"Container\",\".addEventListener\",\"('\",\"scroll\",\"',\",\" ()\",\" =>\",\" {\\n\",\" \",\" const\",\" from\",\"Bottom\",\" =\",\" output\",\"Container\",\".sc\",\"roll\",\"Height\",\" -\",\" \\n\",\"                   \",\" output\",\"Container\",\".sc\",\"roll\",\"Top\",\" -\",\" \\n\",\"                   \",\" output\",\"Container\",\".client\",\"Height\",\";\\n\",\" \",\" auto\",\"Scroll\",\" =\",\" from\",\"Bottom\",\" <=\",\" \",\"100\",\";\\n\",\"});\\n\",\"```\\n\\n\",\"2\",\".\",\" **\",\"可视化\",\"增强\",\"**\\n\",\"```\",\"css\",\"\\n\",\"/*\",\" \",\"添加\",\"时间\",\"轴\",\" */\\n\",\".message\",\"-entry\",\"::\",\"before\",\" {\\n\",\" \",\" content\",\":\",\" '';\\n\",\" \",\" display\",\":\",\" inline\",\"-block\",\";\\n\",\" \",\" width\",\":\",\" \",\"8\",\"px\",\";\\n\",\" \",\" height\",\":\",\" \",\"8\",\"px\",\";\\n\",\" \",\" background\",\":\",\" #\",\"58\",\"a\",\"6\",\"ff\",\";\\n\",\" \",\" border\",\"-radius\",\":\",\" \",\"50\",\"%;\\n\",\" \",\" margin\",\"-right\",\":\",\" \",\"12\",\"px\",\";\\n\",\"}\\n\",\"```\\n\\n\",\"---\\n\\n\",\"这种\",\"实现\",\"方案\",\"在\",\" \",\"1\",\"MB\",\"/s\",\" \",\"的数据\",\"流\",\"下\",\"可实现\",\"约\",\" \",\"20\",\"f\",\"ps\",\" \",\"的\",\"稳定\",\"渲染\",\"，\",\"通过\",\"多\",\"级\",\"动画\",\"策略\",\"兼顾\",\"了\",\"视觉效果\",\"与\",\"性能\",\"表现\",\"。\",\"实际\",\"部署\",\"时\",\"建议\",\"配合\",\" Web\",\" Workers\",\" \",\"进行\",\"数据处理\",\"，\",\"主\",\"线程\",\"专注\",\"渲染\",\"。\",\"\"]";
             // 对text进行分词，需要把换行符也分出来
             List<String> lemmas = JSONArray.parseArray(textArray, String.class);
-            System.out.println(CollUtil.join(lemmas, ""));
+//            System.out.println(CollUtil.join(lemmas, ""));
             for (String lemma : lemmas) {
                 // 转义换行符（保留真正的消息结束符 \n\n）
-                String escaped = lemma.replace("\n", "\\n");
+//                String escaped = lemma.replace("\n", "\\n");
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("content", lemma);
 
                 // 构建符合 SSE 格式的数据包
-                String sseFormatted = "data: " + escaped + "\n\n";
+//                String sseFormatted = "data: " + escaped + "\n\n";
                 try {
                     emitter.send(SseEmitter.event()
-                            .id(String.valueOf(System.currentTimeMillis()))
-                            .name("message")
-                            .data(sseFormatted)
+//                            .name("message")
+                            .data(jsonObject)
                             .build());
                 } catch (Exception e) {
                     emitter.completeWithError(e);
@@ -681,10 +695,11 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
             }
 
             try {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("content", "Stream completed");
                 emitter.send(SseEmitter.event()
-                        .id(String.valueOf(System.currentTimeMillis()))
                         .name("complete")
-                        .data("Stream completed")
+                        .data(jsonObject)
                         .build());
                 emitter.complete();
             } catch (Exception e) {
@@ -874,6 +889,12 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
     private Map<String, Object> buildRequestBody(LlmConfig model, String prompt) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model.getModelCode());
+        JSONObject systemMessage = new JSONObject();
+        systemMessage.put("role", "system");
+        systemMessage.put(contentCol, "");
+        JSONObject userMessage = new JSONObject();
+        userMessage.put("role", "user");
+        userMessage.put(contentCol, prompt);
         switch (model.getModelProvider()) {
             case "ollama":
                 requestBody.put("prompt", prompt);
@@ -881,8 +902,7 @@ public class KbQaServiceImpl extends ServiceImpl<KbChatHistoryMapper, KbChatHist
                 break;
             default:
                 requestBody.put("messages",
-                        new JSONObject[]{new JSONObject().put("role", "system").put(contentCol, ""),
-                                new JSONObject().put("role", "user").put(contentCol, prompt)});
+                        new JSONObject[]{systemMessage, userMessage});
                 requestBody.put("temperature", 0.7);
                 requestBody.put("max_tokens", 2000);
                 requestBody.put("stream", true);

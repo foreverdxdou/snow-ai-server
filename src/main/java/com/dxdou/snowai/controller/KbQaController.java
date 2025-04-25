@@ -54,6 +54,7 @@ public class KbQaController {
             @RequestBody QaRequest request, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-transform"); // 禁止代理修改
         return qaService.streamChat(kbIds, request, response);
+//        return qaService.sendMsg();
     }
 
     @Operation(summary = "通用问答")
